@@ -19,6 +19,6 @@ const fOwnerSchema = new mongoose.Schema({
             ref: "Farm"
         }
     ]
-});
+},{timestamps: true});
 
 export const FarmOwner = mongoose.model('FarmOwner', fOwnerSchema);

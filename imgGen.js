@@ -30,5 +30,5 @@ async function generateImage(imageUrl, prodName) {
     }
 }
 
-module.exports = { generateImage, generateURL };
+export { generateImage, generateURL };
 

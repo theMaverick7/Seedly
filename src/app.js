@@ -1,16 +1,33 @@
 import express from 'express'
-import { generateImage, generateURL } from './imgGen'
-import smallVer from './imgResize'
+import { generateImage, generateURL } from './imgGen.js'
+import smallVer from './imgResize.js'
+import { fileURLToPath } from 'url';
+import path from 'path';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
 
-const app = express();
+// Recreate __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+console.log(__dirname); // Logs the directory path
+console.log(__filename); // Logs the file path
+
+
+const app = express()
 const PORT = process.env.PORT || 7070;
 
 app.set('view engine', 'ejs');
 app.set('views', __dirname + '/views');
 
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '16kb' }));
+app.use(cors({
+    origin: process.env.CORS_ORIGIN,
+    credentials: true
+}))
 app.use(express.static('productImages'));
-//app.use(express.json());
+app.use(express.json({limit: '16kb'}));
+app.use(cookieParser());
 
 // class Product{
 //     constructor(id, productName, productQuality, productPrice){
@@ -31,6 +48,10 @@ app.use(express.static('productImages'));
 //         throw new Error('Key not matched')
 //     }
 // })
+
+app.get('/', (req,res) => {
+    res.send(`<a href="/products">Click here</a>`)
+})
 
 app.get('/products', (req, res) => {
     res.render('products', { products });

@@ -8,4 +8,4 @@ const smallVer = async (img, filename) => {
         })
 }
 
-module.exports = smallVer;
+export default smallVer;
