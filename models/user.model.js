@@ -2,7 +2,7 @@ import mongoose, { Schema } from 'mongoose';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
-const schema = new Schema();
+const reference = mongoose.Schema.Types.ObjectId;
 
 const userSchema = new mongoose.Schema({
     username: {
@@ -28,10 +28,21 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    purchaseHistory: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Order'
-    }
+    refreshToken: {
+        type: String
+    },
+    purchaseHistory: [
+        {
+            type: reference,
+            ref: 'Order'
+        }
+    ],
+    reviews: [
+        {
+            type: reference,
+            ref: 'Review'
+        }
+    ]
 },{timestamps: true});
 
 userSchema.pre('save', async function(next){

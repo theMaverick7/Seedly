@@ -1,6 +1,6 @@
 import express from 'express'
-import { generateImage, generateURL } from './imgGen.js'
-import smallVer from './imgResize.js'
+// import { generateImage, generateURL } from './imgGen.js'
+// import smallVer from './imgResize.js'
 import { fileURLToPath } from 'url';
 import path from 'path';
 import cors from 'cors';
@@ -49,122 +49,129 @@ app.use(cookieParser());
 //     }
 // })
 
-app.get('/', (req,res) => {
-    res.send(`<a href="/products">Click here</a>`)
-})
+// app.get('/', (req,res) => {
+//     res.send(`<a href="/products">Click here</a>`)
+// })
 
-app.get('/products', (req, res) => {
-    res.render('products', { products });
-})
+// app.get('/products', (req, res) => {
+//     res.render('products', { products });
+// })
 
-app.get('/products/:id', (req, res) => {
-    const id = req.params.id;
-    let thisProduct = products.find((prod) => prod.id === parseInt(id))
-    console.log(thisProduct);
-    res.render('item', { thisProduct });
-})
+// app.get('/products/:id', (req, res) => {
+//     const id = req.params.id;
+//     let thisProduct = products.find((prod) => prod.id === parseInt(id))
+//     console.log(thisProduct);
+//     res.render('item', { thisProduct });
+// })
 
-app.get('/create', (req, res) => {
-    res.render('create');
-})
+// app.get('/create', (req, res) => {
+//     res.render('create');
+// })
 
-app.post('/create', async (req, res) => {
-    try {
-        const { productName, productQuality, productPrice, productDesc } = req.body;
-        const URL = generateURL(productName);
-        const img = await generateImage(URL, productName);
-        const smallImg = await smallVer(img, productName);
-        console.log(smallImg);
-        idNum++;
-        products.push({
-            id: idNum,
-            productName: productName,
-            productQuality: productQuality,
-            productPrice: productPrice,
-            productDescription: productDesc,
-            productImg: `/${productName}[productsPage].png`
-        })
-        console.log(products);
-        res.redirect('/products');
-    } catch (error) {
-        console.log(error)
-    }
-})
+// app.post('/create', async (req, res) => {
+//     try {
+//         const { productName, productQuality, productPrice, productDesc } = req.body;
+//         const URL = generateURL(productName);
+//         const img = await generateImage(URL, productName);
+//         const smallImg = await smallVer(img, productName);
+//         console.log(smallImg);
+//         idNum++;
+//         products.push({
+//             id: idNum,
+//             productName: productName,
+//             productQuality: productQuality,
+//             productPrice: productPrice,
+//             productDescription: productDesc,
+//             productImg: `/${productName}[productsPage].png`
+//         })
+//         console.log(products);
+//         res.redirect('/products');
+//     } catch (error) {
+//         console.log(error)
+//     }
+// })
 
-app.post('/products/:id/delete', (req, res) => {
-    const id = req.params.id;
-    let indexed = products.findIndex((prod) => prod.id === parseInt(id))
-    //products.remove(indexed);
-    products.splice(indexed, 1);
-    console.log(products);
-    res.redirect('/products');
-})
+// app.post('/products/:id/delete', (req, res) => {
+//     const id = req.params.id;
+//     let indexed = products.findIndex((prod) => prod.id === parseInt(id))
+//     //products.remove(indexed);
+//     products.splice(indexed, 1);
+//     console.log(products);
+//     res.redirect('/products');
+// })
 
-app.get('/products/:id/edit', (req, res) => {
-    const id = req.params.id;
-    const qlty = ['poor', 'good', 'excellent'];
-    let thisProduct = products.find((prod) => prod.id === parseInt(id));
-    res.render('edit', { thisProduct, qlty });
-})
+// app.get('/products/:id/edit', (req, res) => {
+//     const id = req.params.id;
+//     const qlty = ['poor', 'good', 'excellent'];
+//     let thisProduct = products.find((prod) => prod.id === parseInt(id));
+//     res.render('edit', { thisProduct, qlty });
+// })
 
-app.post('/products/:id/edit', (req, res) => {
-    const { productName, productQuality, productPrice, productDesc } = req.body;
-    const id = parseInt(req.params.id);
-    let thisProduct = products.find((prod) => prod.id === parseInt(id));
-    products[products.indexOf(thisProduct)] = {
-        'id': id,
-        'productName': productName,
-        'productQuality': productQuality,
-        'productPrice': productPrice,
-        'productDescription': productDesc
-    };
-    console.log(products);
-    res.redirect(`/products/${id}`);
-})
+// app.post('/products/:id/edit', (req, res) => {
+//     const { productName, productQuality, productPrice, productDesc } = req.body;
+//     const id = parseInt(req.params.id);
+//     let thisProduct = products.find((prod) => prod.id === parseInt(id));
+//     products[products.indexOf(thisProduct)] = {
+//         'id': id,
+//         'productName': productName,
+//         'productQuality': productQuality,
+//         'productPrice': productPrice,
+//         'productDescription': productDesc
+//     };
+//     console.log(products);
+//     res.redirect(`/products/${id}`);
+// })
 
-app.listen(PORT, () => {
-    console.log(`Server now listening for request on port: ${PORT}`)
-});
-
-
-let idNum = 1003;
-
-const products = [
-    {
-        id: 1001,
-        productName: 'Wheat',
-        productQuality: 'excellent',
-        productPrice: 100,
-        productDescription: "Healthy food. I will recommend this to everyone",
-        productImg: `/Wheat[productsPage].png`
-    },
-    {
-        id: 1002,
-        productName: 'Rice',
-        productQuality: 'good',
-        productPrice: 200,
-        productDescription: "High in calories but very filling",
-        productImg: `/Rice[productsPage].png`
-    },
-    {
-        id: 1003,
-        productName: 'Lentils',
-        productQuality: 'poor',
-        productPrice: 50,
-        productDescription: "A good source of protein",
-        productImg: `/Lentils[productsPage].png`
-    },
-]
+// app.listen(PORT, () => {
+//     console.log(`Server now listening for request on port: ${PORT}`)
+// });
 
 
-Array.prototype.remove = function (from, to) {
-    let rest = this.slice((to || from) + 1 || this.length);
-    this.length = from < 0 ? this.length + from : from;
-    return this.push.apply(this, rest);
-};
+// let idNum = 1003;
+
+// const products = [
+//     {
+//         id: 1001,
+//         productName: 'Wheat',
+//         productQuality: 'excellent',
+//         productPrice: 100,
+//         productDescription: "Healthy food. I will recommend this to everyone",
+//         productImg: `/Wheat[productsPage].png`
+//     },
+//     {
+//         id: 1002,
+//         productName: 'Rice',
+//         productQuality: 'good',
+//         productPrice: 200,
+//         productDescription: "High in calories but very filling",
+//         productImg: `/Rice[productsPage].png`
+//     },
+//     {
+//         id: 1003,
+//         productName: 'Lentils',
+//         productQuality: 'poor',
+//         productPrice: 50,
+//         productDescription: "A good source of protein",
+//         productImg: `/Lentils[productsPage].png`
+//     },
+// ]
+
+
+// Array.prototype.remove = function (from, to) {
+//     let rest = this.slice((to || from) + 1 || this.length);
+//     this.length = from < 0 ? this.length + from : from;
+//     return this.push.apply(this, rest);
+// };
+
+import farmownerRoute from '../src/routes/farmowner.routes.js'
+
+app.use('api/v1/farmowner', farmownerRoute);
 
 
 
 
 
 
+
+
+export {app};

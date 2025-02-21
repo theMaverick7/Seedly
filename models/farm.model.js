@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 
+const reference = mongoose.Schema.Types.ObjectId;
+
 const farmSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -13,10 +15,22 @@ const farmSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    pictures: {
+        type: String
+    },
+    videos: {
+        type: String
+    },
     products: [
         {
-            type: mongoose.Schema.Types.ObjectId,
+            type: reference,
             ref: 'Product'
+        }
+    ],
+    reviews: [
+        {
+            type: reference,
+            ref: 'Review'
         }
     ]
 }, { timestamps: true });
