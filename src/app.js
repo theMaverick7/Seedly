@@ -165,7 +165,7 @@ app.use(cookieParser());
 
 import farmownerRoute from '../src/routes/farmowner.routes.js'
 
-app.use('api/v1/farmowner', farmownerRoute);
+app.use('/api/v1/farmowner', farmownerRoute);
 
 
 

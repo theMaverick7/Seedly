@@ -1,6 +1,6 @@
-import asyncHandler from '../utils/asyncHandler.js';
-import apiError from '../utils/apiError.js';
-import apiResponse from '../utils/apiResponse.js';
+import {asyncHandler} from '../utils/asyncHandler.js';
+import {apiError} from '../utils/apiError.js';
+import {apiResponse} from '../utils/apiResponse.js';
 import { validateEmail, validatePassword } from '../utils/validations.js';
 import { FarmOwner } from '../../models/farmOwner.model.js';
 import mongoose from 'mongoose';
@@ -15,14 +15,14 @@ const registerFarmowner = asyncHandler(async(req, res) => {
 
         if (fieldEmpty) throw new apiError(400, 'all fields are required');
 
-        if(!validateEmail(email)) throw new apiError('email format incorrect');
-        if(!validatePassword(password)) throw new apiError('password format incorrect');
+        if(!validateEmail(email)) throw new apiError(400, 'email format incorrect');
+        if(!validatePassword(password)) throw new apiError(400, 'password format incorrect');
 
-        const existedFarmowner = await Farmowner.findOne({
+        const existedFarmowner = await FarmOwner.findOne({
             $or: [{username}, {email}]
         });
 
-        if(existedFarmowner) throw new apiError('farmowner already exist');
+        if(existedFarmowner) throw new apiError(500, 'farmowner already exist');
 
         let localFilePath;
 
@@ -42,7 +42,7 @@ const registerFarmowner = asyncHandler(async(req, res) => {
             fullname,
             email,
             password,
-            avatar: avatar || ''
+            avatar: cloudUpload.url || ''
         });
 
         const theFarmowner = await FarmOwner.findById(newFarmowner._id).select(
@@ -51,6 +51,8 @@ const registerFarmowner = asyncHandler(async(req, res) => {
 
         if(!theFarmowner) throw new apiError(500, 'farmowner registration failed');
 
+        console.log('Farmowner registered successfully');
+        
         return res.status(200).json(
             new apiResponse(200, theFarmowner, 'farmowner registered successfully')
         );
