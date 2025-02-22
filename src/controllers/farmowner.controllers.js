@@ -3,7 +3,6 @@ import {apiError} from '../utils/apiError.js';
 import {apiResponse} from '../utils/apiResponse.js';
 import { validateEmail, validatePassword } from '../utils/validations.js';
 import { FarmOwner } from '../../models/farmOwner.model.js';
-import mongoose from 'mongoose';
 import { uploadOnCloudinary } from '../utils/cloudinary.js';
 
 const registerFarmowner = asyncHandler(async(req, res) => {
@@ -52,7 +51,7 @@ const registerFarmowner = asyncHandler(async(req, res) => {
         if(!theFarmowner) throw new apiError(500, 'farmowner registration failed');
 
         console.log('Farmowner registered successfully');
-        
+
         return res.status(200).json(
             new apiResponse(200, theFarmowner, 'farmowner registered successfully')
         );

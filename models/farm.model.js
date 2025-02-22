@@ -5,7 +5,8 @@ const reference = mongoose.Schema.Types.ObjectId;
 const farmSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     description: {
         type: String,
@@ -35,4 +36,4 @@ const farmSchema = new mongoose.Schema({
     ]
 }, { timestamps: true });
 
-const Farm = mongoose.model('Farm', farmSchema);
+export const Farm = mongoose.model('Farm', farmSchema);

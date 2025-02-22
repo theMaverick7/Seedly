@@ -163,10 +163,17 @@ app.use(cookieParser());
 //     return this.push.apply(this, rest);
 // };
 
-import farmownerRoute from '../src/routes/farmowner.routes.js'
+import farmownerRouter from '../src/routes/farmowner.routes.js'
 
-app.use('/api/v1/farmowner', farmownerRoute);
+app.use('/api/v1/farmowner', farmownerRouter);
 
+import userRouter from '../src/routes/user.routes.js'
+
+app.use('/api/v1/user', userRouter);
+
+import farmRouter from '../src/routes/farm.routes.js'
+
+app.use('/api/v1/farmowner/farm', farmRouter);
 
 
 
