@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import mongooseAggregatePaginate from 'mongoose-aggregate-paginate-v2';
 
+const reference = mongoose.Schema.Types.ObjectId;
 
 const productSchema = new mongoose.Schema({
     name: {
@@ -8,34 +9,45 @@ const productSchema = new mongoose.Schema({
         required: true
     },
     quality: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Quality'
+        type: reference,
+        ref: 'Quality',
+        required: true
     },
     category: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: reference,
         ref: 'Category',
         required: true
     },
     price: {
-        type: Number,
-        required: true
+        type: reference,
+        ref: "Price"
     },
     description: {
         type: String,
         required: false
     },
-    stock: {
+    inStock: {
         type: Boolean,
         required: true
     },
-    img: {
+    pictures: {
+        type: String,
+        required: false
+    },
+    videos: {
         type: String,
         required: false
     },
     createdBy: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: reference,
         ref: 'Farm'
-    }
+    },
+    reviews: [
+        {
+            type: reference,
+            ref: 'Review'
+        }
+    ]
 }, { timestamps: true });
 
 mongoose.plugin(mongooseAggregatePaginate);
