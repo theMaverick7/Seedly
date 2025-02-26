@@ -1,10 +1,16 @@
-import mongoose from "mongoose";
+import mongoose, { mongo } from "mongoose";
+
+const reference = mongoose.Schema.Types.ObjectId;
 
 const qualitySchema = new mongoose.Schema({
     name: {
         type: String,
         enum: ['premium', 'standard', 'economy'],
         required: true
+    },
+    product: {
+        type: reference,
+        ref: 'Product'
     }
 }, { timestamps: true });
 

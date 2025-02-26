@@ -43,18 +43,6 @@ const createProduct = asyncHandler(async(req, res) => {
     if(!localPicturesPath) throw new apiError(400,'No local pictures path');
     if(!localVideosPath) throw new apiError(400, 'No local videos path');
 
-    const createdPrice = await Price.create({
-        value: price
-    });
-
-    const createdQuality = await Quality.create({
-        name: quality
-    });
-
-    const createdCategory = await Category.create({
-        name: category
-    });
-
     const thePrice = await Price.findById(createdPrice._id);
     const theQuality = await Quality.findById(createdQuality._id);
     const theCategory = await Category.findById(createdCategory._id);
@@ -74,15 +62,30 @@ const createProduct = asyncHandler(async(req, res) => {
         inStock,
         pictures: picturesUpload.url || '',
         videos: videosUpload.url || '',
-        price: thePrice._id,
-        quality: theQuality._id,
-        category: theCategory._id,
         createdBy: theFarm._id
     });
 
     const thisProduct = await Product.findById(createProd._id);
 
-    if(!thisProduct) throw new apiError(500,'product creation failed');
+    if(!thisProduct) throw new apiError(500, 'Error creating product');
+
+    const createdPrice = await Price.create({
+        value: price,
+        product: thisProduct._id
+    });
+
+    const createdQuality = await Quality.create({
+        name: quality.toLowerCase(),
+        product: thisProduct._id
+    });
+
+    const createdCategory = await Category.create({
+        name: category,
+        product: thisProduct._id
+    });
+
+    if(!createdPrice || !createdQuality || !createdCategory)
+    throw new apiError(500, 'Product creation failed');
 
     console.log('Product Created Successfully', thisProduct);
 
