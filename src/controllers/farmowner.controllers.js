@@ -59,6 +59,26 @@ const registerFarmowner = asyncHandler(async(req, res) => {
     } catch (error) {
         console.log(error)
     }
+});
+
+const readFarmowner = asyncHandler(async (req, res) => {
+    try {
+
+    const { id } = req.params;
+
+    const theFarmowner = await FarmOwner.findById(id).select("-refreshToken -password");
+
+    if(!theFarmowner) throw new apiError(500, 'farmowner not found');
+
+    console.log(theFarmowner);
+
+    return res.status(200).json(
+        new apiResponse(200, theFarmowner, 'farmowner fetched')
+    );
+
+    } catch (error) {
+        console.log(error);
+    }
 })
 
-export {registerFarmowner};
+export {registerFarmowner, readFarmowner};

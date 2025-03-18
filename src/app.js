@@ -164,21 +164,9 @@ app.use(cookieParser());
 // };
 
 import farmownerRouter from '../src/routes/farmowner.routes.js'
-
-app.use('/api/v1/farmowner', farmownerRouter);
-
 import userRouter from '../src/routes/user.routes.js'
 
+app.use('/api/v1/farmowner', farmownerRouter);
 app.use('/api/v1/user', userRouter);
-
-import farmRouter from '../src/routes/farm.routes.js'
-
-app.use('/api/v1/farmowner/farm', farmRouter);
-
-
-
-
-
-
 
 export {app};

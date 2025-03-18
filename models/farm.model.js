@@ -22,6 +22,10 @@ const farmSchema = new mongoose.Schema({
     videos: {
         type: String
     },
+    createdBy: {
+        type: reference,
+        ref: 'Farmowner'
+    },
     products: [
         {
             type: reference,

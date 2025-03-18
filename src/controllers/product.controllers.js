@@ -3,14 +3,18 @@ import { apiError } from "../utils/apiError.js"
 import { apiResponse } from "../utils/apiResponse.js"
 import { Product } from "../../models/product.model.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
-import { upload } from "../middlewares/multer.middleware.js"
 import { Farm } from "../../models/farm.model.js"
+import { FarmOwner } from "../../models/farmOwner.model.js"
 
 const createProduct = asyncHandler(async (req, res) => {
   try {
     const { name, quality, category, price, description, inStock } = req.body
 
-    const { id } = req.params
+    const {farmownerid, farmid} = req.params;
+
+    const theFarmowner = await FarmOwner.findById(farmownerid);
+
+    if(!theFarmowner) throw new apiError(500, 'farmowner not found');
 
     const fieldEmpty = [
       name,
@@ -49,7 +53,7 @@ const createProduct = asyncHandler(async (req, res) => {
     // const thePrice = await Price.findById(createdPrice._id);
     // const theQuality = await Quality.findById(createdQuality._id);
     // const theCategory = await Category.findById(createdCategory._id);
-    const theFarm = await Farm.findById(id)
+    const theFarm = await Farm.findById(farmid)
 
     if (!theFarm) throw new apiError(500, "Farm not found")
 
@@ -77,6 +81,9 @@ const createProduct = asyncHandler(async (req, res) => {
     const thisProduct = await Product.findById(createProd._id)
 
     if (!thisProduct) throw new apiError(500, "Error creating product")
+
+    theFarm.products.push(thisProduct._id);
+    await theFarm.save();
 
     console.log("Product Created Successfully", thisProduct)
 

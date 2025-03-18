@@ -2,17 +2,24 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { apiError } from "../utils/apiError.js";
 import { apiResponse } from "../utils/apiResponse.js";
 import { Farm } from "../../models/farm.model.js";
+import { FarmOwner } from "../../models/farmOwner.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const createFarm = asyncHandler(async(req, res) => {
     try {
         
-    const {name, description, location} = req.body;
+    const { name, description, location } = req.body;
+
+    const { id } = req.params;
 
     const fieldEmpty = [name, description, location]
     .some((elem) => elem.trim() === '');
 
     if(fieldEmpty) throw new apiError(400, 'all fields required');
+
+    const foundFarmowner = await FarmOwner.findById(id);
+
+    if(!foundFarmowner) throw new apiError(500, 'farmowner not found');
 
     const existedFarm = await Farm.findOne({name});
 
@@ -39,12 +46,16 @@ const createFarm = asyncHandler(async(req, res) => {
         description,
         location,
         pictures: picturesUpload.url || '',
-        videos: videosUpload.url || ''
+        videos: videosUpload.url || '',
+        createdBy: foundFarmowner._id
     });
 
     const theFarm = await Farm.findById(createFarm._id);
 
     if(!theFarm) throw new apiError(500,'farm creation failed');
+
+    foundFarmowner.farms.push(theFarm._id);
+    await foundFarmowner.save();
 
     console.log('farm created successfully');
 

@@ -43,7 +43,7 @@ const registerUser = asyncHandler(async(req, res) => {
         avatar: cloudUpload.url || ''
     });
 
-    const theUser = User.findById(createUser._id).select("-refreshToken -password");
+    const theUser = await User.findById(createUser._id).select("-refreshToken -password");
 
     if(!theUser) throw new apiError(500, 'user registration failed');
 
