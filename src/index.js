@@ -11,7 +11,7 @@ dotenv.config({
 dbConnection()
 .then((res) => {
     console.log(res);
-    app.listen(PORT, () => console.log(`Server Listening on port: ${PORT}`));
+    app.listen(PORT, () => console.log(`⚪Server Listening on port: ${PORT}`));
     app.on('error', (error) => {
         throw error;
     });

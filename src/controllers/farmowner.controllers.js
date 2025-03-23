@@ -4,6 +4,7 @@ import {apiResponse} from '../utils/apiResponse.js';
 import { validateEmail, validatePassword } from '../utils/validations.js';
 import { FarmOwner } from '../../models/farmOwner.model.js';
 import { uploadOnCloudinary } from '../utils/cloudinary.js';
+import { tokenGen } from '../utils/jwtGen.js';
 
 const registerFarmowner = asyncHandler(async(req, res) => {
     try {
@@ -61,24 +62,110 @@ const registerFarmowner = asyncHandler(async(req, res) => {
     }
 });
 
-const readFarmowner = asyncHandler(async (req, res) => {
+const loginFarmowner = asyncHandler(async (req, res) => {
     try {
 
-    const { id } = req.params;
+    const {username, email, password} = req.body;
 
-    const theFarmowner = await FarmOwner.findById(id).select("-refreshToken -password");
+    if( !(username || email) && !password ) throw new apiError(400, 'These fields are required');
 
-    if(!theFarmowner) throw new apiError(500, 'farmowner not found');
+    const foundOwner = await FarmOwner.findOne({
+        $or: [{username}, {email}]
+    })
 
-    console.log(theFarmowner);
+    if(!foundOwner) throw new apiError(400, 'Farmowner not found');
 
-    return res.status(200).json(
-        new apiResponse(200, theFarmowner, 'farmowner fetched')
-    );
+    const passCheck = await foundOwner.validatePassword(password);
 
+    if(!passCheck){
+        console.log('Login failed');
+        throw new apiError(400,'incorrect password');
+    }
+
+    const {accessToken, refreshToken} = await tokenGen(foundOwner);
+
+    // to check if refreskToken is updated
+    console.log(`refresh token check: ${foundOwner}`);
+
+    const loggedFarmowner = await FarmOwner.findById(foundOwner._id).select("-refreshToken -password");
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    res.status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+        new apiResponse(200, {
+            farmowner: loggedFarmowner,
+            accessToken,
+            refreshToken
+        }, 'Farmowner logged in successfully')
+    )
+ 
     } catch (error) {
         console.log(error);
     }
+});
+
+const logoutFarmowner = asyncHandler(async(req, res) => {
+    try {
+
+    await FarmOwner.findByIdAndUpdate(req.farmowner._id,
+        {
+            $set: {
+                refreshToken: undefined
+            }
+        },
+        {
+            new: true
+        }
+    );
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+    
+    return res
+    .status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(
+        new apiResponse(200, {}, 'farmowner logged out')
+    );
+
+
+    } catch (error) {
+        console.log(error)
+    }
 })
 
-export {registerFarmowner, readFarmowner};
+const readFarmowner = asyncHandler(async (req, res) => {
+    // try {
+
+    // const { id } = req.params;
+
+    // const theFarmowner = await FarmOwner.findById(id).select("-refreshToken -password");
+
+    // if(!theFarmowner) throw new apiError(500, 'farmowner not found');
+
+    // console.log(theFarmowner);
+
+    // return res.status(200).json(
+    //     new apiResponse(200, theFarmowner, 'farmowner fetched')
+    // );
+
+    // } catch (error) {
+    //     console.log(error);
+    // }
+})
+
+export {
+    registerFarmowner,
+    readFarmowner,
+    loginFarmowner,
+    logoutFarmowner
+};

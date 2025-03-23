@@ -47,6 +47,7 @@ fOwnerSchema.methods.validatePassword = async function(password){
 }
 
 fOwnerSchema.methods.generateAccessToken = function(){
+    // returns a jwt token as a string
     return jwt.sign({
         _id: this._id,
         email: this.email,
@@ -60,6 +61,8 @@ fOwnerSchema.methods.generateAccessToken = function(){
 )}
 
 fOwnerSchema.methods.generateRefreshToken = function(){
+
+    // returns a jwt token as a string
     return jwt.sign({
         _id: this._id,
     },
