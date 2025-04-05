@@ -1,9 +1,19 @@
 import { Router } from "express";
 import { upload } from "../middlewares/multer.middleware.js";
-import { registerFarmowner, readFarmowner, loginFarmowner, logoutFarmowner } from "../controllers/farmowner.controllers.js";
-import { createProduct } from "../controllers/product.controllers.js";
-import { createFarm } from "../controllers/farm.controllers.js";
+import { changePrice, createProduct, deleteProduct } from "../controllers/product.controllers.js";
+import { createFarm, updateDescription } from "../controllers/farm.controllers.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+
+import {
+    registerFarmowner,
+    readFarmowner,
+    loginFarmowner,
+    logoutFarmowner,
+    refreshAccessToken,
+    changeUsername, 
+    changePassword,
+    changeAvatar
+} from "../controllers/farmowner.controllers.js"
 
 const router = Router();
 
@@ -38,8 +48,15 @@ const productFiles = upload.fields([
 
 // create routes
 router.route('/register').post(farmownerFiles, registerFarmowner);
-router.route('/:id/farms/create').post(farmFiles, createFarm);
-router.route('/:farmownerid/farms/:farmid/products/create').post(productFiles, createProduct);
+router.route('/:id/farms/create').post(verifyJWT, farmFiles, createFarm);
+router.route('/farms/:farmid/products/create').post(verifyJWT, productFiles, createProduct);
+
+// Patch routes
+router.route('/edit/username').patch(verifyJWT, changeUsername)
+router.route('/edit/password').patch(verifyJWT, changePassword)
+router.route('/edit/avatar').patch(verifyJWT, farmownerFiles, changeAvatar)
+router.route('/farms/:farmid/edit/description').patch(verifyJWT, updateDescription)
+router.route('/farms/:farmid/products/:productid/edit/price').patch(verifyJWT, changePrice)
 
 // login route
 router.route('/login').post(loginFarmowner);
@@ -47,7 +64,13 @@ router.route('/login').post(loginFarmowner);
 // logout route
 router.route('/logout').post(verifyJWT, logoutFarmowner);
 
+// new access token route
+router.route('/newtoken').post(refreshAccessToken)
+
 // read routes
-router.route('/:id').get(readFarmowner);
+router.route('/read').get(verifyJWT, readFarmowner);
+
+// delete routes
+router.route('/farms/:farmid/products/:productid/delete').delete(verifyJWT, deleteProduct)
 
 export default router;

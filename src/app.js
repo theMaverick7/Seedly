@@ -165,8 +165,13 @@ app.use(cookieParser());
 
 import farmownerRouter from '../src/routes/farmowner.routes.js'
 import userRouter from '../src/routes/user.routes.js'
+import farmRouter from '../src/routes/farm.routes.js'
+import productRouter from '../src/routes/product.routes.js'
 
-app.use('/api/v1/farmowner', farmownerRouter);
-app.use('/api/v1/user', userRouter);
+
+app.use('/api/v1/farmowner', farmownerRouter)
+app.use('/api/v1/user', userRouter)
+app.use('/api/v1/farms', farmRouter)
+app.use('/api/v1/products', productRouter)
 
 export {app};

@@ -12,7 +12,7 @@ const createProduct = asyncHandler(async (req, res) => {
 
     const {farmownerid, farmid} = req.params;
 
-    const theFarmowner = await FarmOwner.findById(farmownerid);
+    const theFarmowner = await FarmOwner.findById(req.farmowner._id);
 
     if(!theFarmowner) throw new apiError(500, 'farmowner not found');
 
@@ -95,4 +95,90 @@ const createProduct = asyncHandler(async (req, res) => {
   }
 })
 
-export { createProduct }
+const exploreProducts = asyncHandler(async(req, res) => {
+
+  const products = await Product.find()
+
+  console.log(products)
+
+  return res
+  .status(200)
+  .json(
+    new apiResponse(200, {}, 'all products fetched')
+  )
+
+})
+
+const readProduct = asyncHandler(async(req, res) => {
+
+  const {id} = req.params
+
+  const product = await Product.findById(id)
+
+  console.log(product)
+
+  return res
+  .status(200)
+  .json(
+    new apiResponse(200, product, 'product fetched successfully')
+  )
+
+})
+
+const changePrice = asyncHandler(async(req, res) => {
+
+  try {
+    
+    const {newPrice} = req.body
+    const {productid} = req.params
+
+    const updatedProduct = await Product.findByIdAndUpdate(productid, {
+      $set: {
+        price: newPrice
+      }
+    }, {new: true})
+
+    console.log(updatedProduct)
+
+    return res
+    .status(200)
+    .json(
+      new apiResponse(200, updatedProduct, 'price updated successfully')
+    )
+
+  } catch (error) {
+    console.log(error)
+  }
+
+})
+
+const deleteProduct = asyncHandler(async(req, res) => {
+
+  try {
+    
+    const {productid, farmid} = req.params
+
+    await Product.findByIdAndDelete(productid)
+    await Farm.findById
+
+    console.log('Product deleted successfully')
+
+    return res
+    .status(200)
+    .json(
+      new apiResponse(200, {}, 'product deleted successfully')
+    )
+
+  } catch (error) {
+    console.log(error)
+  }
+
+})
+
+export {
+  createProduct,
+  exploreProducts,
+  readProduct,
+  changePrice,
+  deleteProduct
+}

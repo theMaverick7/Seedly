@@ -68,4 +68,73 @@ const createFarm = asyncHandler(async(req, res) => {
     }
 })
 
-export {createFarm};
+const exploreFarms = asyncHandler(async(req, res) => {
+
+    const farms = await Farm.find()
+
+    console.log(farms)
+
+    return res
+    .status(200)
+    .json(
+        new apiResponse(200, {}, 'all farms fetched')
+    )
+
+})
+
+const readFarm = asyncHandler(async(req, res) => {
+
+    try {
+      
+    const {id} = req.params
+
+    const farm = await Farm.findById(id)
+
+    console.log(farm)
+
+    return res
+    .status(200)
+    .json(
+        new apiResponse(200, farm, 'farm fetched successfully')
+    )
+
+    } catch (error) {
+        console.log(error)
+    }
+
+})
+
+// update controllers
+const updateDescription = asyncHandler(async(req, res) => {
+    
+    try {
+
+    const {farmid} = req.params
+    const {newDescription} = req.body
+
+    const updatedFarm = await Farm.findByIdAndUpdate(farmid, {
+        $set: {
+            description: newDescription
+        }
+    }, {new: true})
+
+    console.log(updatedFarm)
+
+    return res
+    .status(200)
+    .json(
+        new apiResponse(200, updatedFarm, 'description changed')
+    )
+
+    } catch (error) {
+        console.log(error)
+    }
+
+})
+
+export {
+    createFarm,
+    exploreFarms,
+    readFarm,
+    updateDescription
+};
