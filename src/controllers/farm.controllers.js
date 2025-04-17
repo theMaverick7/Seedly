@@ -4,6 +4,7 @@ import { apiResponse } from "../utils/apiResponse.js";
 import { Farm } from "../../models/farm.model.js";
 import { FarmOwner } from "../../models/farmOwner.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { Product } from "../../models/product.model.js";
 
 const createFarm = asyncHandler(async(req, res) => {
     try {
@@ -45,8 +46,8 @@ const createFarm = asyncHandler(async(req, res) => {
         name,
         description,
         location,
-        pictures: picturesUpload.url || '',
-        videos: videosUpload.url || '',
+        pictures: picturesUpload || '',
+        videos: videosUpload || '',
         createdBy: foundFarmowner._id
     });
 
@@ -132,9 +133,43 @@ const updateDescription = asyncHandler(async(req, res) => {
 
 })
 
+const deleteFarm = asyncHandler(async(req, res) => {
+
+    try {
+    
+    const {farmid} = req.params
+
+    await Farm.findByIdAndDelete(farmid)
+
+    const deletedProducts = await Product.deleteMany({
+        createdBy: farmid
+    })
+
+    await FarmOwner.findByIdAndUpdate(req.farmowner._id, {
+        $pull: {
+            farms: farmid
+        }
+    })
+
+    console.log('Farm deleted sucessfully')
+    console.log(`products deleted: ${deletedProducts.deletedCount}`)
+
+    res.
+    status(200)
+    .json(
+        new apiResponse(200, {}, 'Farm deleted successfully')
+    )
+
+    } catch (error) {
+        console.log(error)
+    }
+
+})
+
 export {
     createFarm,
     exploreFarms,
     readFarm,
-    updateDescription
+    updateDescription,
+    deleteFarm
 };

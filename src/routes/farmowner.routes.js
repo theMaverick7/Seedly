@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { upload } from "../middlewares/multer.middleware.js";
 import { changePrice, createProduct, deleteProduct } from "../controllers/product.controllers.js";
-import { createFarm, updateDescription } from "../controllers/farm.controllers.js";
+import { createFarm, deleteFarm, updateDescription } from "../controllers/farm.controllers.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 import {
@@ -72,5 +72,6 @@ router.route('/read').get(verifyJWT, readFarmowner);
 
 // delete routes
 router.route('/farms/:farmid/products/:productid/delete').delete(verifyJWT, deleteProduct)
+router.route('/farms/:farmid/delete').delete(verifyJWT, deleteFarm)
 
 export default router;

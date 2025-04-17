@@ -3,6 +3,11 @@ import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2"
 
 const reference = mongoose.Schema.Types.ObjectId
 
+const cloudAsset = new mongoose.Schema({
+  url: String,
+  asset_id: String
+})
+
 const productSchema = new mongoose.Schema(
   {
     name: {
@@ -17,14 +22,8 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       required: true,
     },
-    pictures: {
-      type: String,
-      required: false,
-    },
-    videos: {
-      type: String,
-      required: false,
-    },
+    pictures: [cloudAsset],
+    videos: [cloudAsset],
     price: {
       type: Number,
       required: true,

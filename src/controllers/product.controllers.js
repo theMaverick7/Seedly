@@ -31,40 +31,31 @@ const createProduct = asyncHandler(async (req, res) => {
 
     if (existedProd) throw new apiError("Product already exist")
 
-    let localPicturesPath, localVideosPath
+    let localPicturesPath,
+        localVideosPath,
+        picturesUpload,
+        videosUpload
 
-    if (
-      req.files &&
-      Array.isArray(req.files.pictures) &&
-      req.files.pictures.length > 0
-    )
-      localPicturesPath = req.files.pictures[0].path
+    if (req.files && Array.isArray(req.files.pictures) && req.files.pictures.length > 0)
+    localPicturesPath = req.files.pictures[0].path
 
-    if (
-      req.files &&
-      Array.isArray(req.files.videos) &&
-      req.files.videos.length > 0
-    )
-      localVideosPath = req.files.videos[0].path
+    if (req.files && Array.isArray(req.files.videos) && req.files.videos.length > 0)
+    localVideosPath = req.files.videos[0].path
 
-    if (!localPicturesPath) throw new apiError(400, "No local pictures path")
-    if (!localVideosPath) throw new apiError(400, "No local videos path")
+    if (!localPicturesPath) throw new apiError(400, "picture required")
 
-    // const thePrice = await Price.findById(createdPrice._id);
-    // const theQuality = await Quality.findById(createdQuality._id);
-    // const theCategory = await Category.findById(createdCategory._id);
     const theFarm = await Farm.findById(farmid)
-
     if (!theFarm) throw new apiError(500, "Farm not found")
 
-    // if (!thePrice || !theQuality || !theCategory || !theFarm)
-    //   throw new apiError(500)
+    picturesUpload = await uploadOnCloudinary(localPicturesPath)
 
-    let picturesUpload = await uploadOnCloudinary(localPicturesPath)
-    let videosUpload = await uploadOnCloudinary(localVideosPath)
+    if(localVideosPath)
+    videosUpload = await uploadOnCloudinary(localVideosPath)
 
     if (!picturesUpload) throw new apiError("pictures upload failed")
-    if (!videosUpload) throw new apiError("videos upload failed")
+    //if (!videosUpload) throw new apiError("videos upload failed")
+
+    console.log('pitstop')
 
     const createProd = await Product.create({
       name,
@@ -73,9 +64,9 @@ const createProduct = asyncHandler(async (req, res) => {
       price,
       quality,
       category,
-      pictures: picturesUpload.url || "",
-      videos: videosUpload.url || "",
-      createdBy: theFarm._id,
+      pictures: {url: picturesUpload.url, asset_id: picturesUpload.asset_id} || "",
+      //videos: [{url: videosUpload.url, asset_id: videosUpload.asset_id}] || "",
+      createdBy: theFarm._id
     })
 
     const thisProduct = await Product.findById(createProd._id)
@@ -156,17 +147,21 @@ const deleteProduct = asyncHandler(async(req, res) => {
 
   try {
     
-    const {productid, farmid} = req.params
+    const {farmid, productid} = req.params
 
     await Product.findByIdAndDelete(productid)
-    await Farm.findById
+    const updatedFarm = await Farm.findByIdAndUpdate(farmid, {
+      $pull: {
+        products: productid
+      }
+    }, {new: true})
 
     console.log('Product deleted successfully')
 
     return res
     .status(200)
     .json(
-      new apiResponse(200, {}, 'product deleted successfully')
+      new apiResponse(200, updatedFarm, 'product deleted successfully')
     )
 
   } catch (error) {

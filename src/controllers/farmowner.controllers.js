@@ -26,25 +26,20 @@ const registerFarmowner = asyncHandler(async(req, res) => {
 
         if(existedFarmowner) throw new apiError(500, 'farmowner already exist');
 
-        let localFilePath;
+        let localFilePath, cloudUpload;
 
         if(req.files && Array.isArray(req.files.avatar) && req.files.avatar.length > 0)
-        {
-            localFilePath = req.files.avatar[0].path;
-        }
+        localFilePath = req.files.avatar[0].path
 
-        if(!localFilePath) throw new apiError(400, 'local file path required');
-
-        const cloudUpload = await uploadOnCloudinary(localFilePath);
-
-        if(!cloudUpload) throw new apiError(500, 'Cloudinary upload failed');
+        if(localFilePath)
+        cloudUpload = await uploadOnCloudinary(localFilePath)
 
         const newFarmowner = await FarmOwner.create({
             username: username.toLowerCase(),
             fullname,
             email,
             password,
-            avatar: cloudUpload.url || ''
+            avatar: cloudUpload || ''
         });
 
         const theFarmowner = await FarmOwner.findById(newFarmowner._id).select(
