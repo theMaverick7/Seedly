@@ -1,45 +1,32 @@
-import {asyncHandler} from '../utils/asyncHandler.js';
-import {apiError} from '../utils/apiError.js';
-import {apiResponse} from '../utils/apiResponse.js';
-import { validateEmail, validatePassword } from '../utils/validations.js';
-import { FarmOwner } from '../../models/farmOwner.model.js';
-import { uploadOnCloudinary } from '../utils/cloudinary.js';
-import { tokenGen } from '../utils/jwtGen.js';
-import jwt from 'jsonwebtoken';
+import {asyncHandler} from '../utils/asyncHandler.js'
+import {apiError} from '../utils/apiError.js'
+import {apiResponse} from '../utils/apiResponse.js'
+import { FarmOwner} from '../../models/farmOwner.model.js'
+import { uploadOnCloudinary } from '../utils/cloudinary.js'
+import { tokenGen } from '../utils/jwtGen.js'
+import jwt from 'jsonwebtoken'
 
 // create controllers
 const registerFarmowner = asyncHandler(async(req, res) => {
     try {
         
-        const {username, fullname, email, password} = req.body;
-
-        const fieldEmpty = [username, fullname, email, password].some((elem) => elem.trim() === '');
-
-        if (fieldEmpty) throw new apiError(400, 'all fields are required');
-
-        if(!validateEmail(email)) throw new apiError(400, 'email format incorrect');
-        if(!validatePassword(password)) throw new apiError(400, 'password format incorrect');
+        const userData = res.locals.validatedData
+        const avatar = res.locals.file
 
         const existedFarmowner = await FarmOwner.findOne({
-            $or: [{username}, {email}]
+            $or: [{username: userData.username}, {email: userData.email}]
         });
 
         if(existedFarmowner) throw new apiError(500, 'farmowner already exist');
 
-        let localFilePath, cloudUpload;
-
-        if(req.files && Array.isArray(req.files.avatar) && req.files.avatar.length > 0)
-        localFilePath = req.files.avatar[0].path
-
-        if(localFilePath)
-        cloudUpload = await uploadOnCloudinary(localFilePath)
+        const cloudUpload = await uploadOnCloudinary(avatar.path)
 
         const newFarmowner = await FarmOwner.create({
-            username: username.toLowerCase(),
-            fullname,
-            email,
-            password,
-            avatar: cloudUpload || ''
+            ...userData,
+            avatar: {
+                url: cloudUpload?.url || '',
+                asset_id: cloudUpload?.asset_id || ''
+             }
         });
 
         const theFarmowner = await FarmOwner.findById(newFarmowner._id).select(

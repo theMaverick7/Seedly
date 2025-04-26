@@ -1,59 +1,44 @@
-import { asyncHandler } from "../utils/asyncHandler.js";
-import { apiError } from "../utils/apiError.js";
-import { apiResponse } from "../utils/apiResponse.js";
-import { validateEmail, validatePassword } from "../utils/validations.js";
-import { User } from "../../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
-import { tokenGen } from "../utils/jwtGen.js";
+import { asyncHandler } from "../utils/asyncHandler.js"
+import { apiError } from "../utils/apiError.js"
+import { apiResponse } from "../utils/apiResponse.js"
+import { User } from "../../models/user.model.js"
+import { uploadOnCloudinary } from "../utils/cloudinary.js"
+import { tokenGen } from "../utils/jwtGen.js"
 import jwt from 'jsonwebtoken'
 
 const registerUser = asyncHandler(async(req, res) => {
     try {
 
-    const {username, fullname, email, password} = req.body;
+        const userData = res.locals.validatedData
+        const avatar = res.locals.file
 
-    const fieldEmpty = [username, fullname, email, password]
-    .some((elem) => elem.trim() === '');
+        const existedUser = await User.findOne({
+            $or: [{username: userData.username}, {email: userData.email}]
+        });
 
-    if(fieldEmpty) throw new apiError(400, 'all fields required');
+        if(existedUser) throw new apiError(500, 'user already exist');
 
-    if (!validateEmail(email) && !validatePassword) 
-    throw new apiError(400, 'incorrect password or email format');
+        const cloudUpload = await uploadOnCloudinary(avatar.path);
 
-    const existedUser = await User.findOne({
-        $or: [{username}, {email}]
-    });
+        if (!cloudUpload) throw new apiError(500, 'cloudinary upload failed');
 
-    if(existedUser) throw new apiError(500, 'user already exist');
+        const createUser = await User.create({
+            ...userData,
+            avatar: {
+                url: cloudUpload?.url || '',
+                asset_id: cloudUpload?.asset_id || ''
+             }
+        });
 
-    let localFilePath;
+        const theUser = await User.findById(createUser._id).select("-refreshToken -password");
 
-    if(req.files && Array.isArray(req.files.avatar) && req.files.avatar.length > 0)
-    localFilePath = req.files.avatar[0].path;
+        if(!theUser) throw new apiError(500, 'user registration failed');
 
-    if(!localFilePath) throw new apiError(400, 'no local file path');
+        console.log('user registered successfully');
 
-    const cloudUpload = await uploadOnCloudinary(localFilePath);
-
-    if (!cloudUpload) throw new apiError(500, 'cloudinary upload failed');
-
-    const createUser = await User.create({
-        username: username.toLowerCase(),
-        fullname,
-        email,
-        password,
-        avatar: cloudUpload.url || ''
-    });
-
-    const theUser = await User.findById(createUser._id).select("-refreshToken -password");
-
-    if(!theUser) throw new apiError(500, 'user registration failed');
-
-    console.log('user registered successfully');
-
-    return res.status(200).json(
-        new apiResponse(200, theUser, 'user registered successfully')
-    );
+        return res.status(200).json(
+            new apiResponse(200, theUser, 'user registered successfully')
+        );
 
     } catch (error) {
         console.log(error)

@@ -34,20 +34,24 @@ const createFarm = asyncHandler(async(req, res) => {
     if(req.files && Array.isArray(req.files.videos) && req.files.videos.length > 0)
     localVideosPath = req.files.videos[0].path;
 
-    if(!localPicturesPath) throw new apiError(400, 'no local pictures path');
-    if(!localVideosPath) throw new apiError(400, 'no local videos path');
+    // if(!localPicturesPath) throw new apiError(400, 'no local pictures path');
+    // if(!localVideosPath) throw new apiError(400, 'no local videos path');
 
     const picturesUpload = await uploadOnCloudinary(localPicturesPath);
     const videosUpload = await uploadOnCloudinary(localVideosPath);
-
-    if(!picturesUpload && !videosUpload) throw new apiError(500, 'cloud upload failed');
 
     const createFarm = await Farm.create({
         name,
         description,
         location,
-        pictures: picturesUpload || '',
-        videos: videosUpload || '',
+        pictures: {
+            url: picturesUpload?.url || '',
+            asset_id: picturesUpload?.asset_id || ''
+        },
+        videos: {
+            url: videosUpload?.url || '',
+            asset_id: videosUpload?.asset_id || ''
+        },
         createdBy: foundFarmowner._id
     });
 

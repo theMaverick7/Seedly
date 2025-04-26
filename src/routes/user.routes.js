@@ -1,6 +1,9 @@
-import { Router } from "express";
-import { upload } from "../middlewares/multer.middleware.js";
-import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { Router } from "express"
+import { upload } from "../middlewares/multer.middleware.js"
+import { verifyJWT } from "../middlewares/auth.middleware.js"
+import { validate } from "../middlewares/validateFile.middleware.js"
+import { joiSchema } from "../../models/farmOwner.model.js"
+import { fileSchema } from "../../models/sharedSchemas.js"
 
 import {
     registerUser,
@@ -15,20 +18,15 @@ import {
 
 const router = Router();
 
-const uploadFiles = upload.fields([
-    {
-        name: 'avatar',
-        maxCount: 1
-    }
-]);
+const uploadFile = upload.single('avatar')
 
 // create routes
-router.route('/register').post(verifyJWT, uploadFiles, registerUser);
+router.route('/register').post(uploadFile, validate(joiSchema, fileSchema), registerUser)
 
 //updateroutes
 router.route('/edit/username').patch(verifyJWT, changeUsername)
 router.route('/edit/password').patch(verifyJWT, changePassword)
-router.route('/edit/avatar').patch(verifyJWT, uploadFiles, changeAvatar)
+router.route('/edit/avatar').patch(verifyJWT, uploadFile, changeAvatar)
 
 // login route
 router.route('/login').post(loginUser)

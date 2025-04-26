@@ -2,13 +2,18 @@ import { asyncHandler } from "../utils/asyncHandler.js"
 import { apiError } from "../utils/apiError.js"
 import { apiResponse } from "../utils/apiResponse.js"
 import { Product } from "../../models/product.model.js"
-import { uploadOnCloudinary } from "../utils/cloudinary.js"
+import { uploadOnCloudinary, deleteFile } from "../utils/cloudinary.js"
 import { Farm } from "../../models/farm.model.js"
 import { FarmOwner } from "../../models/farmOwner.model.js"
 
 const createProduct = asyncHandler(async (req, res) => {
   try {
-    const { name, quality, category, price, description, inStock } = req.body
+
+    let data = []
+    console.log(req.body)
+
+    for(let key in req.body)
+    data.push(key)
 
     const {farmownerid, farmid} = req.params;
 
@@ -16,24 +21,18 @@ const createProduct = asyncHandler(async (req, res) => {
 
     if(!theFarmowner) throw new apiError(500, 'farmowner not found');
 
-    const fieldEmpty = [
-      name,
-      quality,
-      category,
-      price,
-      description,
-      inStock,
-    ].some((elem) => elem.trim() === "")
+    const fieldEmpty = data
+    .map((key) => req.body[key])
+    .some((elem) => elem.trim() === "")
 
     if (fieldEmpty) throw new apiError("all fields required")
 
-    const existedProd = await Product.findOne({ name })
+    const existedProd = await Product.findOne({name: req.body.name})
 
     if (existedProd) throw new apiError("Product already exist")
 
     let localPicturesPath,
         localVideosPath,
-        picturesUpload,
         videosUpload
 
     if (req.files && Array.isArray(req.files.pictures) && req.files.pictures.length > 0)
@@ -47,25 +46,24 @@ const createProduct = asyncHandler(async (req, res) => {
     const theFarm = await Farm.findById(farmid)
     if (!theFarm) throw new apiError(500, "Farm not found")
 
-    picturesUpload = await uploadOnCloudinary(localPicturesPath)
+    const picturesUpload = await uploadOnCloudinary(localPicturesPath)
 
     if(localVideosPath)
     videosUpload = await uploadOnCloudinary(localVideosPath)
 
-    if (!picturesUpload) throw new apiError("pictures upload failed")
+    //if (!picturesUpload) throw new apiError("pictures upload failed")
     //if (!videosUpload) throw new apiError("videos upload failed")
 
-    console.log('pitstop')
-
     const createProd = await Product.create({
-      name,
-      description,
-      inStock,
-      price,
-      quality,
-      category,
-      pictures: {url: picturesUpload.url, asset_id: picturesUpload.asset_id} || "",
-      //videos: [{url: videosUpload.url, asset_id: videosUpload.asset_id}] || "",
+      ...req.body,
+      pictures: {
+        url: picturesUpload?.url || '',
+        asset_id: picturesUpload?.asset_id || ''
+      },
+      videos: {
+        url: videosUpload?.url || '',
+        asset_id: videosUpload?.asset_id || ''
+      },
       createdBy: theFarm._id
     })
 
@@ -149,15 +147,21 @@ const deleteProduct = asyncHandler(async(req, res) => {
     
     const {farmid, productid} = req.params
 
-    await Product.findByIdAndDelete(productid)
+    const deletedProd = await Product.findByIdAndDelete(productid)
     const updatedFarm = await Farm.findByIdAndUpdate(farmid, {
       $pull: {
         products: productid
       }
     }, {new: true})
 
-    console.log('Product deleted successfully')
+    const assetId = deletedProd.pictures?.asset_id
+    console.log(assetId)
+    console.log(deletedProd.pictures)
+    const deletedAsset = await deleteFile(assetId)
 
+
+    console.log('Product deleted successfully')
+    console.log(deletedAsset)
     return res
     .status(200)
     .json(

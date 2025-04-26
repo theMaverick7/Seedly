@@ -1,6 +1,7 @@
 import mongoose, { Schema } from 'mongoose';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import { cloudAsset } from './sharedSchemas.js';
 
 const reference = mongoose.Schema.Types.ObjectId;
 
@@ -28,6 +29,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    avatar: cloudAsset,
     refreshToken: {
         type: String
     },

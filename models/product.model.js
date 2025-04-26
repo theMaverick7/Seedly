@@ -1,12 +1,8 @@
 import mongoose from "mongoose"
 import mongooseAggregatePaginate from "mongoose-aggregate-paginate-v2"
+import { cloudAsset } from "./sharedSchemas.js"
 
 const reference = mongoose.Schema.Types.ObjectId
-
-const cloudAsset = new mongoose.Schema({
-  url: String,
-  asset_id: String
-})
 
 const productSchema = new mongoose.Schema(
   {

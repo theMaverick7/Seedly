@@ -3,6 +3,9 @@ import { upload } from "../middlewares/multer.middleware.js";
 import { changePrice, createProduct, deleteProduct } from "../controllers/product.controllers.js";
 import { createFarm, deleteFarm, updateDescription } from "../controllers/farm.controllers.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { validate } from "../middlewares/validateFile.middleware.js";
+import { joiSchema } from "../../models/farmOwner.model.js";
+import { fileSchema } from "../../models/sharedSchemas.js";
 
 import {
     registerFarmowner,
@@ -17,12 +20,7 @@ import {
 
 const router = Router();
 
-const farmownerFiles = upload.fields([
-    {
-        name: 'avatar',
-        maxCount: 1
-    }
-]);
+const farmownerFile = upload.single('avatar')
 
 const farmFiles = upload.fields([
     {
@@ -47,14 +45,14 @@ const productFiles = upload.fields([
 ]);
 
 // create routes
-router.route('/register').post(farmownerFiles, registerFarmowner);
+router.route('/register').post(farmownerFile, validate(joiSchema, fileSchema), registerFarmowner);
 router.route('/:id/farms/create').post(verifyJWT, farmFiles, createFarm);
 router.route('/farms/:farmid/products/create').post(verifyJWT, productFiles, createProduct);
 
 // Patch routes
 router.route('/edit/username').patch(verifyJWT, changeUsername)
 router.route('/edit/password').patch(verifyJWT, changePassword)
-router.route('/edit/avatar').patch(verifyJWT, farmownerFiles, changeAvatar)
+router.route('/edit/avatar').patch(verifyJWT, farmownerFile, changeAvatar)
 router.route('/farms/:farmid/edit/description').patch(verifyJWT, updateDescription)
 router.route('/farms/:farmid/products/:productid/edit/price').patch(verifyJWT, changePrice)
 
