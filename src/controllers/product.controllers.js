@@ -9,11 +9,20 @@ import { FarmOwner } from "../../models/farmOwner.model.js"
 const createProduct = asyncHandler(async (req, res) => {
   try {
 
-    let data = []
-    console.log(req.body)
+    const userData = res.locals.validatedBody
+    const validatedPictures = res.locals.validatedPictures
+    const validatedVideos = res.locals.validatedVideos
 
-    for(let key in req.body)
-    data.push(key)
+    console.log('coming from product controller')
+    console.log(userData, validatedPictures, validatedVideos)
+
+    const picturesPaths = []
+    const videosPaths = []
+
+    validatedPictures.forEach((picture) => picturesPaths.push(picture.path))
+    validatedVideos.forEach((video) => videosPaths.push(video.path))
+
+    console.log(picturesPaths, videosPaths)
 
     const {farmownerid, farmid} = req.params;
 
@@ -21,49 +30,31 @@ const createProduct = asyncHandler(async (req, res) => {
 
     if(!theFarmowner) throw new apiError(500, 'farmowner not found');
 
-    const fieldEmpty = data
-    .map((key) => req.body[key])
-    .some((elem) => elem.trim() === "")
-
-    if (fieldEmpty) throw new apiError("all fields required")
-
     const existedProd = await Product.findOne({name: req.body.name})
 
     if (existedProd) throw new apiError("Product already exist")
 
-    let localPicturesPath,
-        localVideosPath,
-        videosUpload
-
-    if (req.files && Array.isArray(req.files.pictures) && req.files.pictures.length > 0)
-    localPicturesPath = req.files.pictures[0].path
-
-    if (req.files && Array.isArray(req.files.videos) && req.files.videos.length > 0)
-    localVideosPath = req.files.videos[0].path
-
-    if (!localPicturesPath) throw new apiError(400, "picture required")
-
     const theFarm = await Farm.findById(farmid)
     if (!theFarm) throw new apiError(500, "Farm not found")
 
-    const picturesUpload = await uploadOnCloudinary(localPicturesPath)
+    let picturesUpload, videosUpload
 
-    if(localVideosPath)
-    videosUpload = await uploadOnCloudinary(localVideosPath)
+        const mapped1 = picturesPaths.map(async(path) => {
+            return await uploadOnCloudinary(path)
+        })
 
-    //if (!picturesUpload) throw new apiError("pictures upload failed")
-    //if (!videosUpload) throw new apiError("videos upload failed")
+        const mapped2 = videosPaths.map(async(path) => {
+            return await uploadOnCloudinary(path)
+        })
+
+        const promised1 = await Promise.all(mapped1)
+        const promised2 = await Promise.all(mapped2)
+
+        console.log(promised1)
+        console.log(promised2)
 
     const createProd = await Product.create({
       ...req.body,
-      pictures: {
-        url: picturesUpload?.url || '',
-        asset_id: picturesUpload?.asset_id || ''
-      },
-      videos: {
-        url: videosUpload?.url || '',
-        asset_id: videosUpload?.asset_id || ''
-      },
       createdBy: theFarm._id
     })
 
@@ -71,8 +62,23 @@ const createProduct = asyncHandler(async (req, res) => {
 
     if (!thisProduct) throw new apiError(500, "Error creating product")
 
+    promised1.forEach((obj) => {
+            thisProduct.pictures.push({
+                url: obj.url,
+                asset_id: obj.asset_id
+            })
+        })
+
+        promised2.forEach((obj) => {
+            thisProduct.videos.push({
+                url: obj.url,
+                asset_id: obj.asset_id
+            })
+        })
+
     theFarm.products.push(thisProduct._id);
     await theFarm.save();
+    await thisProduct.save()
 
     console.log("Product Created Successfully", thisProduct)
 

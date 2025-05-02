@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { cloudAsset } from "./sharedSchemas.js";
+import { cloudAsset, fileSchema } from "./sharedSchemas.js";
 import Joi from "joi";
 
 const reference = mongoose.Schema.Types.ObjectId;
@@ -38,26 +38,21 @@ const farmSchema = new mongoose.Schema({
     ]
 }, { timestamps: true });
 
-export const joiSchema = Joi.object({
-        username: Joi.string()
-            .min(5)
-            .max(30)
-            .lowercase()
+export const farmJoiSchema = Joi.object({
+        name: Joi.string()
+            .max(15)
             .required(),
 
-        fullname: Joi.string()
+        description: Joi.string()
             .required(),
 
-        password: Joi.string()
+        location: Joi.string()
             .min(8)
             .max(30)
-            .regex(/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}/)
             .required(),
 
-        email: Joi.string()
-            .email()
-            .regex(/[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)
-            .required()
+        pictures: [fileSchema],
+        videos: [fileSchema]
 })
 
 export const Farm = mongoose.model('Farm', farmSchema);

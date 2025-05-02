@@ -9,64 +9,79 @@ import { Product } from "../../models/product.model.js";
 const createFarm = asyncHandler(async(req, res) => {
     try {
         
-    const { name, description, location } = req.body;
+        const userData = res.locals.validatedBody
+        const validatedPictures = res.locals.validatedPictures
+        const validatedVideos = res.locals.validatedVideos
 
-    const { id } = req.params;
+        console.log('coming from farm controller')
+        console.log(userData, validatedPictures, validatedVideos)
 
-    const fieldEmpty = [name, description, location]
-    .some((elem) => elem.trim() === '');
+        const picturesPaths = []
+        const videosPaths = []
 
-    if(fieldEmpty) throw new apiError(400, 'all fields required');
+        validatedPictures.forEach((picture) => picturesPaths.push(picture.path))
+        validatedVideos.forEach((video) => videosPaths.push(video.path))
 
-    const foundFarmowner = await FarmOwner.findById(id);
+        console.log(picturesPaths, videosPaths)
 
-    if(!foundFarmowner) throw new apiError(500, 'farmowner not found');
+        const { id } = req.params;
 
-    const existedFarm = await Farm.findOne({name});
+        const foundFarmowner = await FarmOwner.findById(id);
 
-    if(existedFarm) throw new apiError(400, 'farm already existed');
+        if(!foundFarmowner) throw new apiError(500, 'farmowner not found')
 
-    let localPicturesPath, localVideosPath;
+        const existedFarm = await Farm.findOne({name: userData.name});
 
-    if(req.files && Array.isArray(req.files.pictures) && req.files.pictures.length > 0)
-    localPicturesPath = req.files.pictures[0].path;
+        if(existedFarm) throw new apiError(400, 'farm already existed')
 
-    if(req.files && Array.isArray(req.files.videos) && req.files.videos.length > 0)
-    localVideosPath = req.files.videos[0].path;
+        let picturesUpload, videosUpload
 
-    // if(!localPicturesPath) throw new apiError(400, 'no local pictures path');
-    // if(!localVideosPath) throw new apiError(400, 'no local videos path');
+        const mapped1 = picturesPaths.map(async(path) => {
+            return await uploadOnCloudinary(path)
+        })
 
-    const picturesUpload = await uploadOnCloudinary(localPicturesPath);
-    const videosUpload = await uploadOnCloudinary(localVideosPath);
+        const mapped2 = videosPaths.map(async(path) => {
+            return await uploadOnCloudinary(path)
+        })
 
-    const createFarm = await Farm.create({
-        name,
-        description,
-        location,
-        pictures: {
-            url: picturesUpload?.url || '',
-            asset_id: picturesUpload?.asset_id || ''
-        },
-        videos: {
-            url: videosUpload?.url || '',
-            asset_id: videosUpload?.asset_id || ''
-        },
-        createdBy: foundFarmowner._id
-    });
+        const promised1 = await Promise.all(mapped1)
+        const promised2 = await Promise.all(mapped2)
 
-    const theFarm = await Farm.findById(createFarm._id);
+        console.log(promised1)
+        console.log(promised2)
 
-    if(!theFarm) throw new apiError(500,'farm creation failed');
+        const createFarm = await Farm.create({
+            ...userData,
+            createdBy: foundFarmowner._id
+        });
 
-    foundFarmowner.farms.push(theFarm._id);
-    await foundFarmowner.save();
+        const theFarm = await Farm.findById(createFarm._id);
 
-    console.log('farm created successfully');
+        if(!theFarm) throw new apiError(500,'farm creation failed');
 
-    return res.status(200).json(
-        new apiResponse(200, theFarm, 'farm created successfully')
-    );
+        promised1.forEach((obj) => {
+            theFarm.pictures.push({
+                url: obj.url,
+                asset_id: obj.asset_id
+            })
+        })
+
+        promised2.forEach((obj) => {
+            theFarm.videos.push({
+                url: obj.url,
+                asset_id: obj.asset_id
+            })
+        })
+
+        foundFarmowner.farms.push(theFarm._id)
+        await theFarm.save()
+        await foundFarmowner.save()
+
+        console.log('farm created successfully');
+
+        return res.status(200).json(
+            new apiResponse(200, theFarm, 'farm created successfully')
+        );
 
     } catch (error) {
         console.log(error)

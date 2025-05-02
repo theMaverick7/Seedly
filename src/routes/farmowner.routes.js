@@ -6,6 +6,8 @@ import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { validate } from "../middlewares/validateFile.middleware.js";
 import { joiSchema } from "../../models/farmOwner.model.js";
 import { fileSchema } from "../../models/sharedSchemas.js";
+import { farmJoiSchema } from "../../models/farm.model.js";
+import { productJoiSchema } from "../../models/product.model.js";
 
 import {
     registerFarmowner,
@@ -46,8 +48,8 @@ const productFiles = upload.fields([
 
 // create routes
 router.route('/register').post(farmownerFile, validate(joiSchema, fileSchema), registerFarmowner);
-router.route('/:id/farms/create').post(verifyJWT, farmFiles, createFarm);
-router.route('/farms/:farmid/products/create').post(verifyJWT, productFiles, createProduct);
+router.route('/:id/farms/create').post(verifyJWT, farmFiles, validate(farmJoiSchema, fileSchema), createFarm);
+router.route('/farms/:farmid/products/create').post(verifyJWT, productFiles, validate(productJoiSchema,fileSchema), createProduct);
 
 // Patch routes
 router.route('/edit/username').patch(verifyJWT, changeUsername)

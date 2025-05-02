@@ -10,7 +10,7 @@ import jwt from 'jsonwebtoken'
 const registerFarmowner = asyncHandler(async(req, res) => {
     try {
         
-        const userData = res.locals.validatedData
+        const userData = res.locals.validatedBody
         const avatar = res.locals.file
 
         const existedFarmowner = await FarmOwner.findOne({
@@ -19,7 +19,13 @@ const registerFarmowner = asyncHandler(async(req, res) => {
 
         if(existedFarmowner) throw new apiError(500, 'farmowner already exist');
 
-        const cloudUpload = await uploadOnCloudinary(avatar.path)
+        let cloudUpload
+
+        console.log('avatar here')
+        console.log(avatar)
+
+        if(avatar)
+            cloudUpload = await uploadOnCloudinary(avatar.path)
 
         const newFarmowner = await FarmOwner.create({
             ...userData,

@@ -9,7 +9,7 @@ import jwt from 'jsonwebtoken'
 const registerUser = asyncHandler(async(req, res) => {
     try {
 
-        const userData = res.locals.validatedData
+        const userData = res.locals.validatedBody
         const avatar = res.locals.file
 
         const existedUser = await User.findOne({
@@ -18,9 +18,10 @@ const registerUser = asyncHandler(async(req, res) => {
 
         if(existedUser) throw new apiError(500, 'user already exist');
 
-        const cloudUpload = await uploadOnCloudinary(avatar.path);
+        let cloudUpload
 
-        if (!cloudUpload) throw new apiError(500, 'cloudinary upload failed');
+        if(avatar)
+            cloudUpload = await uploadOnCloudinary(avatar.path)
 
         const createUser = await User.create({
             ...userData,
