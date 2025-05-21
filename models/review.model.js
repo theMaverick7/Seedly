@@ -1,4 +1,4 @@
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose"
 
 const reviewSchema = new mongoose.Schema({
     reviewBy: {
@@ -11,7 +11,7 @@ const reviewSchema = new mongoose.Schema({
     },
     rating: {
         type: Number,
-        required:true,
+        required: true,
         min: 1,
         max: 5
     },
@@ -27,6 +27,6 @@ const reviewSchema = new mongoose.Schema({
             refPath: 'reviewFor.kind'
         }
     }
-},{timestamps: true});
+},{ timestamps: true })
 
-const Review = mongoose.model('Review', reviewSchema);
+const Review = mongoose.model('Review', reviewSchema)

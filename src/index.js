@@ -1,21 +1,28 @@
-import dbConnection from "./db/index.js";
 import dotenv from 'dotenv';
-import { app } from "./app.js";
+import dbConnection from './db/index.js';
+import { app } from './app.js';
+
+// Load environment variables
+dotenv.config({ path: './env' });
 
 const PORT = process.env.PORT || 7070;
 
-dotenv.config({
-    path: './env'
-});
+async function startServer() {
+    try {
+        const res = await dbConnection();
+        console.log(res);
 
-dbConnection()
-.then((res) => {
-    console.log(res);
-    app.listen(PORT, () => console.log(`⚙️  Server Listening on port: ${PORT}`));
-    app.on('error', (error) => {
-        throw error;
-    });
-})
-.catch((err) => {
-    console.log(`Database Connection Denied ${err}`);
-})
+        app.listen(PORT, () => {
+            console.log(`⚙️  Server Listening on port: ${PORT}`);
+        });
+
+        app.on('error', (error) => {
+            throw error;
+        });
+    } catch (err) {
+        console.error(`Database Connection Denied: ${err}`);
+        process.exit(1);
+    }
+}
+
+startServer();

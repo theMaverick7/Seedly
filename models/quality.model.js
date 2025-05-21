@@ -1,6 +1,6 @@
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose"
 
-const reference = mongoose.Schema.Types.ObjectId;
+const reference = mongoose.Schema.Types.ObjectId
 
 const qualitySchema = new mongoose.Schema({
     name: {
@@ -12,6 +12,6 @@ const qualitySchema = new mongoose.Schema({
         type: reference,
         ref: 'Product'
     }
-}, { timestamps: true });
+}, { timestamps: true })
 
-export const Quality = mongoose.model('Quality', qualitySchema);
+export const Quality = mongoose.model('Quality', qualitySchema)

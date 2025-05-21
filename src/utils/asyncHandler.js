@@ -1,20 +1,11 @@
-// Try/catch syntax
-const asyncHandler = (func) => async(req, res, next) => {
+export const asyncHandler = (fn) => async (req, res, next) => {
     try {
-        await func(req, res, next);
+        await fn(req, res, next);
     } catch (error) {
+        console.error(error);
         res.status(error.code || 500).json({
             success: false,
-            message: error.message
-        })
+            message: error.message || 'Internal Server Error',
+        });
     }
-}
-
-// then/catch syntax
-// const asyncHandler = (func) => (req, res, next) => {
-//     Promise
-//     .resolve(func(req, res, next))
-//     .reject((err) => next(err));
-// }
-
-export {asyncHandler};
+};

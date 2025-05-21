@@ -1,10 +1,9 @@
-import mongoose, { mongo } from "mongoose";
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
-import { cloudAsset, fileSchema } from "./sharedSchemas.js";
-import Joi from "joi"
+import mongoose from "mongoose"
+import jwt from 'jsonwebtoken'
+import bcrypt from 'bcrypt'
+import { cloudAsset } from "./sharedSchemas.js"
 
-const reference = mongoose.Schema.Types.ObjectId;
+const reference = mongoose.Schema.Types.ObjectId
 
 const fOwnerSchema = new mongoose.Schema({
     username: {
@@ -33,41 +32,19 @@ const fOwnerSchema = new mongoose.Schema({
             ref: "Farm"
         }
     ]
-},{timestamps: true});
+},{timestamps: true})
 
 fOwnerSchema.pre('save', async function(next){
-    if(!this.isModified("password")) return next();
 
-    this.password = await bcrypt.hash(this.password, 10);
-    next();
-})
+    if(!this.isModified("password"))
+        return next()
 
-export const joiSchema = Joi.object({
-        username: Joi.string()
-            .min(5)
-            .max(30)
-            .lowercase()
-            .required(),
-
-        fullname: Joi.string()
-            .required(),
-
-		password: Joi.string()
-            .min(8)
-            .max(30)
-            .regex(/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}/)
-            .required(),
-
-		email: Joi.string()
-            .email()
-            .regex(/[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)
-            .required(),
-
-        avatar: fileSchema
+    this.password = await bcrypt.hash(this.password, 10)
+    next()
 })
 
 fOwnerSchema.methods.validatePassword = async function(password){
-    return await bcrypt.compare(password, this.password);
+    return await bcrypt.compare(password, this.password)
 }
 
 fOwnerSchema.methods.generateAccessToken = function(){
@@ -96,4 +73,4 @@ fOwnerSchema.methods.generateRefreshToken = function(){
     }
 )}
 
-export const FarmOwner = mongoose.model('FarmOwner', fOwnerSchema);
+export const FarmOwner = mongoose.model('FarmOwner', fOwnerSchema)

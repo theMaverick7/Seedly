@@ -1,8 +1,7 @@
-import mongoose from "mongoose";
-import { cloudAsset, fileSchema } from "./sharedSchemas.js";
-import Joi from "joi";
+import mongoose from "mongoose"
+import { cloudAsset } from "./sharedSchemas.js"
 
-const reference = mongoose.Schema.Types.ObjectId;
+const reference = mongoose.Schema.Types.ObjectId
 
 const farmSchema = new mongoose.Schema({
     name: {
@@ -36,23 +35,6 @@ const farmSchema = new mongoose.Schema({
             ref: 'Review'
         }
     ]
-}, { timestamps: true });
+}, { timestamps: true })
 
-export const farmJoiSchema = Joi.object({
-        name: Joi.string()
-            .max(15)
-            .required(),
-
-        description: Joi.string()
-            .required(),
-
-        location: Joi.string()
-            .min(8)
-            .max(30)
-            .required(),
-
-        pictures: [fileSchema],
-        videos: [fileSchema]
-})
-
-export const Farm = mongoose.model('Farm', farmSchema);
+export const Farm = mongoose.model('Farm', farmSchema)

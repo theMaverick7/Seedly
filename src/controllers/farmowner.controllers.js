@@ -1,300 +1,260 @@
-import {asyncHandler} from '../utils/asyncHandler.js'
-import {apiError} from '../utils/apiError.js'
-import {apiResponse} from '../utils/apiResponse.js'
-import { FarmOwner} from '../../models/farmOwner.model.js'
-import { uploadOnCloudinary } from '../utils/cloudinary.js'
-import { tokenGen } from '../utils/jwtGen.js'
-import jwt from 'jsonwebtoken'
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { apiError } from '../utils/apiError.js';
+import { apiResponse } from '../utils/apiResponse.js';
+import { FarmOwner } from '../../models/farmOwner.model.js';
+import { uploadOnCloudinary, deleteFile } from '../utils/cloudinary.js';
+import { tokenGen } from '../utils/jwtGen.js';
+import jwt from 'jsonwebtoken';
+import { Farm } from '../../models/farm.model.js';
+import { Product } from '../../models/product.model.js';
+import mongoose from 'mongoose';
 
-// create controllers
-const registerFarmowner = asyncHandler(async(req, res) => {
-    try {
-        
-        const userData = res.locals.validatedBody
-        const avatar = res.locals.file
+const cookieOptions = {
+    httpOnly: true,
+    secure: true,
+};
 
-        const existedFarmowner = await FarmOwner.findOne({
-            $or: [{username: userData.username}, {email: userData.email}]
-        });
+// Create Farmowner
+const createFarmowner = asyncHandler(async (_, res) => {
+    const userData = res.locals.validatedTextValues;
+    const avatar = res.locals.validatedFile;
 
-        if(existedFarmowner) throw new apiError(500, 'farmowner already exist');
+    const existingFarmowner = await FarmOwner.findOne({
+        $or: [{ username: userData.username }, { email: userData.email }],
+    });
 
-        let cloudUpload
+    if (existingFarmowner) throw new apiError(500, 'farmowner already exist');
 
-        console.log('avatar here')
-        console.log(avatar)
+    let cloudUpload = null;
+    if (avatar) cloudUpload = await uploadOnCloudinary(avatar.path);
+    if (!cloudUpload) throw new apiError(500, 'cloud upload failed');
 
-        if(avatar)
-            cloudUpload = await uploadOnCloudinary(avatar.path)
+    const newFarmowner = await FarmOwner.create({
+        ...userData,
+        avatar: {
+            url: cloudUpload?.url || '',
+            public_id: cloudUpload?.public_id || '',
+        },
+    });
 
-        const newFarmowner = await FarmOwner.create({
-            ...userData,
-            avatar: {
-                url: cloudUpload?.url || '',
-                asset_id: cloudUpload?.asset_id || ''
-             }
-        });
+    const theFarmowner = await FarmOwner.findById(newFarmowner._id).select('-refreshToken -password');
+    if (!theFarmowner) throw new apiError(500, 'farmowner registration failed');
 
-        const theFarmowner = await FarmOwner.findById(newFarmowner._id).select(
-            "-refreshToken -password"
-        );
-
-        if(!theFarmowner) throw new apiError(500, 'farmowner registration failed');
-
-        console.log('Farmowner registered successfully');
-
-        return res.status(200).json(
-            new apiResponse(200, theFarmowner, 'farmowner registered successfully')
-        );
-
-    } catch (error) {
-        console.log(error)
-    }
+    console.log('Farmowner registered successfully');
+    return res.status(200).json(
+        new apiResponse(200, theFarmowner, 'farmowner registered successfully')
+    );
 });
 
-// auth controllers
-const loginFarmowner = asyncHandler(async(req, res) => {
-    try {
-
-    const {username, email, password} = req.body;
-
-    if( !(username || email) && !password ) throw new apiError(400, 'These fields are required');
+// Login Farmowner
+const loginFarmowner = asyncHandler(async (_, res) => {
+    const userData = res.locals.validatedTextValues;
 
     const foundOwner = await FarmOwner.findOne({
-        $or: [{username}, {email}]
-    })
+        $or: [{ username: userData.identifier }, { email: userData.identifier }],
+    });
+    if (!foundOwner) throw new apiError(400, 'Farmowner not found');
 
-    if(!foundOwner) throw new apiError(400, 'Farmowner not found');
+    const isPswdCorrect = await foundOwner.validatePassword(userData.password);
+    if (!isPswdCorrect) throw new apiError(400, 'incorrect password');
 
-    const passCheck = await foundOwner.validatePassword(password);
+    const { accessToken, refreshToken } = await tokenGen(foundOwner);
 
-    if(!passCheck){
-        console.log('Login failed');
-        throw new apiError(400,'incorrect password');
-    }
+    const loggedFarmowner = await FarmOwner.findById(foundOwner._id).select('-refreshToken -password');
 
-    const {accessToken, refreshToken} = await tokenGen(foundOwner);
-
-    // to check if refreskToken is updated
-    console.log(`refresh token check: ${foundOwner}`);
-
-    const loggedFarmowner = await FarmOwner.findById(foundOwner._id).select("-refreshToken -password");
-
-    const options = {
-        httpOnly: true,
-        secure: true
-    }
-
-    res.status(200)
-    .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", refreshToken, options)
-    .json(
-        new apiResponse(200, {
-            farmowner: loggedFarmowner,
-            accessToken,
-            refreshToken
-        }, 'Farmowner logged in successfully')
-    )
- 
-    } catch (error) {
-        console.log(error);
-    }
-});
-
-const logoutFarmowner = asyncHandler(async(req, res) => {
-    try {
-
-    const ownerUpdated = await FarmOwner.findByIdAndUpdate(req.farmowner._id,
-        {
-            $set: {
-                "refreshToken": null
-            }
-    }, {new: true});
-
-    console.log(ownerUpdated);
-
-    const options = {
-        httpOnly: true,
-        secure: true
-    }
-    
     return res
-    .status(200)
-    .clearCookie("accessToken", options)
-    .clearCookie("refreshToken", options)
-    .json(
-        new apiResponse(200, {}, 'farmowner logged out')
-    );
-
-
-    } catch (error) {
-        console.log(error)
-    }
-})
-
-const refreshAccessToken = asyncHandler(async(req, res) => {
-
-    try {
-
-        const incomingRefreshToken = req.cookies.refreshToken ||
-        req.body.refreshToken
-
-        if(!incomingRefreshToken) throw new apiError(401, 'unauthorized access')
-
-        const decodedToken = jwt.verify(
-            incomingRefreshToken,
-            process.env.REFRESH_TOKEN_SECRET
-        )
-
-        const theFarmowner = await FarmOwner.findById(decodedToken?._id)
-
-        if(!theFarmowner) throw new apiError(500, 'farmowner not found')
-
-        if(theFarmowner.refreshToken !== incomingRefreshToken)
-        throw new apiError(500, 'refresh token unmatched')
-
-        const {accessToken, newRefreshToken} = await tokenGen(theFarmowner)
-
-        const options = {
-            httpOnly: true,
-            secure: true
-        }
-
-        return res
         .status(200)
-        .cookie("accessToken", accessToken, options)
-        .cookie("refreshToken", newRefreshToken, options)
+        .cookie('accessToken', accessToken, cookieOptions)
+        .cookie('refreshToken', refreshToken, cookieOptions)
         .json(
             new apiResponse(
                 200,
-                {
-                    accessToken,
-                    refreshToken
-                },
-                "new access token generated"
+                { farmowner: loggedFarmowner, accessToken, refreshToken },
+                'Farmowner logged in successfully'
             )
-        )
+        );
+});
 
-    } catch (error) {
-        console.log(error)
-    }
-
-})
-
-// read controllers
-const readFarmowner = asyncHandler(async(req, res) => {
-
-    const theFarmowner = req.farmowner
-    
-    console.log(theFarmowner)
-    
-    return res
-    .status(200)
-    .json(
-        new apiResponse(200, theFarmowner, 'farmowner fetched')
-     )
-
-})
-
-// update controllers
-const changeUsername = asyncHandler(async(req, res) => {
-
-    try {
-        
-    const {username} = req.body
-
-    const updatedFarmowner = await FarmOwner.findByIdAndUpdate(req.farmowner._id, {
-        $set: {
-            username: username
-        }
-    }, {new: true})
-
-    if(!updatedFarmowner) throw new apiError(500, 'username update failed')
-
-    console.log(updatedFarmowner)
+// Logout Farmowner
+const logoutFarmowner = asyncHandler(async (req, res) => {
+    await FarmOwner.findByIdAndUpdate(req.farmowner._id, { $set: { refreshToken: null } }, { new: true });
 
     return res
-    .status(200)
-    .json(
-        new apiResponse(200, updatedFarmowner, 'username changed')
-    )
-
-
-    } catch (error) {
-        console.log(error)
-    }
-})
-
-const changePassword = asyncHandler(async(req, res) => {
-    
-    try {
-
-        const {currentPassword, newPassword} = req.body
-
-        const foundFarmowner = await FarmOwner.findById(req.farmowner._id)
-
-        const pswdCheck = await foundFarmowner.validatePassword(currentPassword)
-
-        if(!pswdCheck) throw new apiError(401, 'password not correct')
-
-        foundFarmowner.password = newPassword
-        await foundFarmowner.save({validateBeforeSave: false})
-    
-        // const updatedFarmowner = await FarmOwner.updateOne(foundFarmowner, {
-        //     $set: {
-        //         "password": newPassword
-        //     }
-        // })
-    
-        return res
         .status(200)
+        .clearCookie('accessToken', cookieOptions)
+        .clearCookie('refreshToken', cookieOptions)
+        .json(new apiResponse(200, {}, 'farmowner logged out'));
+});
+
+// Refresh Access Token
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    const refresh_token = req.cookies?.refreshToken || req.body?.refreshToken;
+    if (!refresh_token) throw new apiError(401, 'unauthorized access');
+
+    const decodedToken = jwt.verify(refresh_token, process.env.REFRESH_TOKEN_SECRET);
+    if (!decodedToken) throw new apiError(401, 'invalid token');
+
+    const theFarmowner = await FarmOwner.findById(decodedToken?._id);
+    if (!theFarmowner) throw new apiError(500, 'farmowner not found');
+    if (theFarmowner.refreshToken !== refresh_token) throw new apiError(500, 'refresh token unmatched');
+
+    const { accessToken, newRefreshToken } = await tokenGen(theFarmowner);
+
+    return res
+        .status(200)
+        .cookie('accessToken', accessToken, cookieOptions)
+        .cookie('refreshToken', newRefreshToken, cookieOptions)
         .json(
-            new apiResponse(200, {}, 'password changed successfully')
-        )
+            new apiResponse(
+                200,
+                { accessToken, refreshToken: newRefreshToken },
+                'new access token generated'
+            )
+        );
+});
 
-    } catch (error) {
-        console.log(error)
-    }
+// Read Farmowner
+const readFarmowner = asyncHandler(async (req, res) => {
+    const theFarmowner = req.farmowner;
+    console.log(theFarmowner);
 
-})
+    return res.status(200).json(new apiResponse(200, theFarmowner, 'farmowner fetched'));
+});
 
-const changeAvatar = asyncHandler(async(req, res) => {
+// Change Username
+const changeUsername = asyncHandler(async (req, res) => {
+    const userData = res.locals.validatedTextValues;
+
+    const updatedFarmowner = await FarmOwner.findByIdAndUpdate(
+        req.farmowner._id,
+        { $set: { username: userData.username } },
+        { new: true }
+    );
+
+    if (!updatedFarmowner) throw new apiError(500, 'username update failed');
+
+    return res.status(200).json(new apiResponse(200, updatedFarmowner, 'username changed'));
+});
+
+// Change Email
+const changeEmail = asyncHandler(async (req, res) => {
+    const { currentPassword, newEmail } = res.locals.validatedTextValues;
+
+    const foundFarmowner = await FarmOwner.findById(req.farmowner._id);
+    const pswdCheck = await foundFarmowner.validatePassword(currentPassword);
+    if (!pswdCheck) throw new apiError(401, 'password not correct');
+
+    foundFarmowner.email = newEmail;
+    await foundFarmowner.save({ validateBeforeSave: false });
+
+    return res.status(200).json(new apiResponse(200, {}, 'email changed successfully'));
+});
+
+// Change Fullname
+const changeFullname = asyncHandler(async (req, res) => {
+    const { currentPassword, newFullname } = res.locals.validatedTextValues;
+
+    const foundFarmowner = await FarmOwner.findById(req.farmowner._id);
+    const pswdCheck = await foundFarmowner.validatePassword(currentPassword);
+    if (!pswdCheck) throw new apiError(401, 'password not correct');
+
+    foundFarmowner.fullname = newFullname;
+    await foundFarmowner.save({ validateBeforeSave: false });
+
+    return res.status(200).json(new apiResponse(200, {}, 'fullname changed successfully'));
+});
+
+// Change Password
+const changePassword = asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = res.locals.validatedTextValues;
+
+    const foundFarmowner = await FarmOwner.findById(req.farmowner._id);
+    const pswdCheck = await foundFarmowner.validatePassword(currentPassword);
+    if (!pswdCheck) throw new apiError(401, 'password not correct');
+
+    foundFarmowner.password = newPassword;
+    await foundFarmowner.save({ validateBeforeSave: false });
+
+    return res.status(200).json(new apiResponse(200, {}, 'password changed successfully'));
+});
+
+// Delete Avatar
+const deleteAvatar = asyncHandler(async (req, res) => {
+    const cloudId = req.farmowner.avatar?.public_id;
+
+    const updatedFarmowner = await FarmOwner.updateOne(
+        { _id: req.farmowner._id },
+        { $set: { avatar: null } },
+        { new: true }
+    );
+
+    await deleteFile(cloudId);
+
+    return res.status(200).json(new apiResponse(200, updatedFarmowner, 'avatar deleted'));
+});
+
+// Change Avatar
+const changeAvatar = asyncHandler(async (req, res) => {
+    const avatar = res.locals.validatedFile;
+    const cloudUpload = await uploadOnCloudinary(avatar.path);
+
+    if (!cloudUpload) throw new apiError(500, 'image upload failed');
+
+    const updatedFarmowner = await FarmOwner.findByIdAndUpdate(
+        req.farmowner._id,
+        {
+            $set: {
+                avatar: {
+                    url: cloudUpload.url,
+                    public_id: cloudUpload.public_id,
+                },
+            },
+        },
+        { new: true }
+    );
+
+    return res.status(200).json(new apiResponse(200, updatedFarmowner, 'avatar changed'));
+});
+
+// Delete Farmowner
+const deleteFarmowner = asyncHandler(async (req, res) => {
+    let deletedFarms, deletedProducts;
+    const session = await mongoose.startSession();
 
     try {
+        await session.withTransaction(async () => {
+            const deletedFarmowner = await FarmOwner.findByIdAndDelete(req.farmowner._id, { session });
+            if (deletedFarmowner.avatar) await deleteFile(deletedFarmowner.avatar.public_id, { session });
 
-        const localFilePath = req.files.avatar[0].path
-    
-        if(!localFilePath) throw new apiError(401, 'you must upload an image file')
-    
-        const cloudUpload = await uploadOnCloudinary(localFilePath)
-    
-        if(!cloudUpload) throw new apiError(500, 'image upload failed')
-    
-        const updatedFarmowner = await FarmOwner.findByIdAndUpdate(req.farmowner._id, {
-            $set: {
-                avatar: cloudUpload.url
-            }
-        }, {new: true})
-    
-        return res.
-        status(200)
-        .json(
-            new apiResponse(200, updatedFarmowner, 'avatar changed')
-        )
-        
+            const farmids = deletedFarmowner.farms;
+            deletedFarms = await Farm.deleteMany({ createdBy: deletedFarmowner._id }, { session });
+            deletedProducts = await Product.deleteMany({ createdBy: { $in: farmids } }, { session });
+        });
+
+        await session.endSession();
+
+        console.log('farmowner deleted successfully');
+        console.log(`farms deleted: ${deletedFarms.deletedCount}`);
+        console.log(`products deleted: ${deletedProducts.deletedCount}`);
+
+        return res.status(200).json(new apiResponse(200, {}, 'farmowner deleted successfully'));
     } catch (error) {
-        console.log(error)
+        await session.endSession();
+        throw new apiError(500, `error deleting farmowner: ${error.message}`);
     }
-
-})
+});
 
 export {
-    registerFarmowner,
+    createFarmowner,
     readFarmowner,
     loginFarmowner,
     logoutFarmowner,
     refreshAccessToken,
     changeUsername,
+    changeFullname,
+    changeEmail,
     changePassword,
-    changeAvatar
-}
+    changeAvatar,
+    deleteAvatar,
+    deleteFarmowner
+};

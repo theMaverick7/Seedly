@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
-const reference = mongoose.Schema.Types.ObjectId;
+const reference = mongoose.Schema.Types.ObjectId
 
 const priceSchema = new mongoose.Schema({
     value: {
@@ -11,6 +11,6 @@ const priceSchema = new mongoose.Schema({
         type: reference,
         ref: 'Product'
     }
-});
+})
 
-export const Price = mongoose.model('Price', priceSchema);
+export const Price = mongoose.model('Price', priceSchema)

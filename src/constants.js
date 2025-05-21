@@ -1,1 +1,1 @@
-export const DB_NAME = "seedly"
+export const DB_NAME = "seedly";

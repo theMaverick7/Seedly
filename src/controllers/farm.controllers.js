@@ -3,192 +3,151 @@ import { apiError } from "../utils/apiError.js";
 import { apiResponse } from "../utils/apiResponse.js";
 import { Farm } from "../../models/farm.model.js";
 import { FarmOwner } from "../../models/farmOwner.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { Product } from "../../models/product.model.js";
+import { uploadAndSaveCloudAssets } from "../utils/uploadAndSaveCloudAssets.js";
 
-const createFarm = asyncHandler(async(req, res) => {
-    try {
-        
-        const userData = res.locals.validatedBody
-        const validatedPictures = res.locals.validatedPictures
-        const validatedVideos = res.locals.validatedVideos
+// Create a new farm
+const createFarm = asyncHandler(async (req, res) => {
+    const {
+        validatedTextValues: userData,
+        validatedPictures,
+        validatedVideos,
+    } = res.locals;
 
-        console.log('coming from farm controller')
-        console.log(userData, validatedPictures, validatedVideos)
+    const foundFarmOwner = await FarmOwner.findById(req.params.id);
+    if (!foundFarmOwner) {
+        throw new apiError(404, "Farm owner not found");
+    }
 
-        const picturesPaths = []
-        const videosPaths = []
+    const existingFarm = await Farm.findOne({ name: userData.name });
+    if (existingFarm) {
+        throw new apiError(400, "Farm already exists");
+    }
 
-        validatedPictures.forEach((picture) => picturesPaths.push(picture.path))
-        validatedVideos.forEach((video) => videosPaths.push(video.path))
+    const newFarm = await Farm.create({
+        ...userData,
+        createdBy: foundFarmOwner._id,
+    });
 
-        console.log(picturesPaths, videosPaths)
+    if (validatedPictures) {
+        await uploadAndSaveCloudAssets(validatedPictures, newFarm, "pictures");
+    }
+    if (validatedVideos) {
+        await uploadAndSaveCloudAssets(validatedVideos, newFarm, "videos");
+    }
 
-        const { id } = req.params;
+    foundFarmOwner.farms.push(newFarm._id);
+    await foundFarmOwner.save();
 
-        const foundFarmowner = await FarmOwner.findById(id);
+    return res.status(201).json(
+        new apiResponse(201, newFarm, "Farm created successfully")
+    );
+});
 
-        if(!foundFarmowner) throw new apiError(500, 'farmowner not found')
+// Get all farms
+const exploreFarms = asyncHandler(async (_, res) => {
+    const farms = await Farm.find();
+    console.log(farms);
 
-        const existedFarm = await Farm.findOne({name: userData.name});
+    return res
+        .status(200)
+        .json(new apiResponse(200, farms, "All farms fetched"));
+});
 
-        if(existedFarm) throw new apiError(400, 'farm already existed')
+// Get a single farm by ID
+const readFarm = asyncHandler(async (req, res) => {
+    const farm = await Farm.findById(req.params.id);
+    console.log(farm);
 
-        let picturesUpload, videosUpload
+    return res
+        .status(200)
+        .json(new apiResponse(200, farm, "Farm fetched successfully"));
+});
 
-        const mapped1 = picturesPaths.map(async(path) => {
-            return await uploadOnCloudinary(path)
-        })
+// Edit a farm
+const editFarm = asyncHandler(async (req, res) => {
+    const {
+        validatedTextValues: farmData,
+        validatedPictures,
+        validatedVideos,
+    } = res.locals;
+    const { farmid } = req.params;
+    const { imagesIds = [], videosIds = [] } = farmData.removeAssets || {};
 
-        const mapped2 = videosPaths.map(async(path) => {
-            return await uploadOnCloudinary(path)
-        })
+    const foundFarm = await Farm.findById(farmid);
+    if (!foundFarm) throw new apiError(404, "Farm not found");
 
-        const promised1 = await Promise.all(mapped1)
-        const promised2 = await Promise.all(mapped2)
-
-        console.log(promised1)
-        console.log(promised2)
-
-        const createFarm = await Farm.create({
-            ...userData,
-            createdBy: foundFarmowner._id
-        });
-
-        const theFarm = await Farm.findById(createFarm._id);
-
-        if(!theFarm) throw new apiError(500,'farm creation failed');
-
-        promised1.forEach((obj) => {
-            theFarm.pictures.push({
-                url: obj.url,
-                asset_id: obj.asset_id
-            })
-        })
-
-        promised2.forEach((obj) => {
-            theFarm.videos.push({
-                url: obj.url,
-                asset_id: obj.asset_id
-            })
-        })
-
-        foundFarmowner.farms.push(theFarm._id)
-        await theFarm.save()
-        await foundFarmowner.save()
-
-        console.log('farm created successfully');
-
-        return res.status(200).json(
-            new apiResponse(200, theFarm, 'farm created successfully')
+    if (imagesIds.length) {
+        await Farm.findOneAndUpdate(
+            { _id: foundFarm._id },
+            { $pull: { pictures: { public_id: { $in: imagesIds } } } },
+            { new: true }
         );
-
-    } catch (error) {
-        console.log(error)
-    }
-})
-
-const exploreFarms = asyncHandler(async(req, res) => {
-
-    const farms = await Farm.find()
-
-    console.log(farms)
-
-    return res
-    .status(200)
-    .json(
-        new apiResponse(200, {}, 'all farms fetched')
-    )
-
-})
-
-const readFarm = asyncHandler(async(req, res) => {
-
-    try {
-      
-    const {id} = req.params
-
-    const farm = await Farm.findById(id)
-
-    console.log(farm)
-
-    return res
-    .status(200)
-    .json(
-        new apiResponse(200, farm, 'farm fetched successfully')
-    )
-
-    } catch (error) {
-        console.log(error)
+        await deleteFiles(imagesIds);
     }
 
-})
-
-// update controllers
-const updateDescription = asyncHandler(async(req, res) => {
-    
-    try {
-
-    const {farmid} = req.params
-    const {newDescription} = req.body
-
-    const updatedFarm = await Farm.findByIdAndUpdate(farmid, {
-        $set: {
-            description: newDescription
-        }
-    }, {new: true})
-
-    console.log(updatedFarm)
-
-    return res
-    .status(200)
-    .json(
-        new apiResponse(200, updatedFarm, 'description changed')
-    )
-
-    } catch (error) {
-        console.log(error)
+    if (videosIds.length) {
+        await Farm.findOneAndUpdate(
+            { _id: foundFarm._id },
+            { $pull: { videos: { public_id: { $in: videosIds } } } },
+            { new: true }
+        );
+        await deleteFiles(videosIds, "video");
     }
 
-})
+    if (validatedPictures) {
+        await uploadAndSaveCloudAssets(
+            validatedPictures,
+            foundFarm,
+            "pictures"
+        );
+    }
 
-const deleteFarm = asyncHandler(async(req, res) => {
+    if (validatedVideos) {
+        await uploadAndSaveCloudAssets(
+            validatedVideos,
+            foundFarm,
+            "videos"
+        );
+    }
 
-    try {
-    
-    const {farmid} = req.params
+    const updatedFarm = await Farm.findById(farmid);
 
-    await Farm.findByIdAndDelete(farmid)
+    console.log("Farm updated successfully");
+
+    res
+        .status(200)
+        .json(new apiResponse(200, updatedFarm, "Farm updated successfully"));
+});
+
+// Delete a farm
+const deleteFarm = asyncHandler(async (req, res) => {
+    const { farmid } = req.params;
+
+    await Farm.findByIdAndDelete(farmid);
 
     const deletedProducts = await Product.deleteMany({
-        createdBy: farmid
-    })
+        createdBy: farmid,
+    });
 
     await FarmOwner.findByIdAndUpdate(req.farmowner._id, {
         $pull: {
-            farms: farmid
-        }
-    })
+            farms: farmid,
+        },
+    });
 
-    console.log('Farm deleted sucessfully')
-    console.log(`products deleted: ${deletedProducts.deletedCount}`)
+    console.log("Farm deleted successfully");
+    console.log(`Products deleted: ${deletedProducts.deletedCount}`);
 
-    res.
-    status(200)
-    .json(
-        new apiResponse(200, {}, 'Farm deleted successfully')
-    )
-
-    } catch (error) {
-        console.log(error)
-    }
-
-})
+    res
+        .status(200)
+        .json(new apiResponse(200, {}, "Farm deleted successfully"));
+});
 
 export {
     createFarm,
     exploreFarms,
     readFarm,
-    updateDescription,
-    deleteFarm
+    deleteFarm,
+    editFarm,
 };

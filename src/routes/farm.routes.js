@@ -1,13 +1,9 @@
-import { Router } from "express"
-import {
-    exploreFarms,
-    readFarm
-} from "../controllers/farm.controllers.js"
+import { Router } from "express";
+import { exploreFarms, readFarm } from "../controllers/farm.controllers.js";
 
-const router = Router()
+const router = Router();
 
-router.route('/').get(exploreFarms)
-router.route('/:id').get(readFarm)
+router.get("/", exploreFarms);
+router.get("/:id", readFarm);
 
-
-export default router
+export default router;

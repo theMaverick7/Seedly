@@ -1,9 +1,9 @@
-import mongoose, { Schema } from 'mongoose';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
-import { cloudAsset } from './sharedSchemas.js';
+import mongoose from 'mongoose'
+import jwt from 'jsonwebtoken'
+import bcrypt from 'bcrypt'
+import { cloudAsset } from './sharedSchemas.js'
 
-const reference = mongoose.Schema.Types.ObjectId;
+const reference = mongoose.Schema.Types.ObjectId
 
 const userSchema = new mongoose.Schema({
     username: {
@@ -45,17 +45,19 @@ const userSchema = new mongoose.Schema({
             ref: 'Review'
         }
     ]
-},{timestamps: true});
+},{ timestamps: true })
 
 userSchema.pre('save', async function(next){
-    if(!this.isModified("password")) return next();
 
-    this.password = await bcrypt.hash(this.password, 10);
-    next();
+    if(!this.isModified("password"))
+        return next()
+
+    this.password = await bcrypt.hash(this.password, 10)
+    next()
 })
 
 userSchema.methods.validatePassword = async function(password){
-    return await bcrypt.compare(password, this.password);
+    return await bcrypt.compare(password, this.password)
 }
 
 userSchema.methods.generateAccessToken = function(){
@@ -81,4 +83,4 @@ userSchema.methods.generateRefreshToken = function(){
     }
 )}
 
-export const User = mongoose.model('User', userSchema);
+export const User = mongoose.model('User', userSchema)

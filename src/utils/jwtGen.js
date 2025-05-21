@@ -1,18 +1,16 @@
-
-const tokenGen = async(entity) => {
+const tokenGen = async (entity) => {
     try {
+        const accessToken = entity.generateAccessToken();
+        const refreshToken = entity.generateRefreshToken();
 
-        const accessToken = entity.generateAccessToken()
-        const refreshToken = entity.generateRefreshToken()
-    
-        entity.refreshToken = refreshToken
-    
-        await entity.save({validateBeforeSave: false})
-        return {accessToken, refreshToken}
+        entity.refreshToken = refreshToken;
+        await entity.save({ validateBeforeSave: false });
 
+        return { accessToken, refreshToken };
     } catch (error) {
-        console.log(error)
+        console.error('Token generation error:', error);
+        throw error;
     }
-}
+};
 
-export {tokenGen}
+export { tokenGen };

@@ -1,43 +1,42 @@
-import { Router } from "express"
-import { upload } from "../middlewares/multer.middleware.js"
-import { verifyJWT } from "../middlewares/auth.middleware.js"
-import { validate } from "../middlewares/validateFile.middleware.js"
-import { joiSchema } from "../../models/farmOwner.model.js"
-import { fileSchema } from "../../models/sharedSchemas.js"
-
+import { Router } from "express";
+import { upload } from "../middlewares/multer.middleware.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { validator } from "../middlewares/validator.middleware.js";
+import { createJoiSchema } from "../../models/sharedSchemas.js";
 import {
-    registerUser,
+    createUser,
     loginUser,
     logoutUser,
     refreshAccessToken,
     readUser,
     changeUsername,
     changePassword,
-    changeAvatar
+    changeAvatar,
+    deleteAvatar,
+    deleteUser,
 } from "../controllers/user.controllers.js";
 
 const router = Router();
+const uploadFile = upload.single("avatar");
 
-const uploadFile = upload.single('avatar')
+// Register
+router.post("/register", uploadFile, validator(createJoiSchema), createUser);
 
-// create routes
-router.route('/register').post(uploadFile, validate(joiSchema, fileSchema), registerUser)
+// Update
+router.patch("/edit/username", verifyJWT, changeUsername);
+router.patch("/edit/password", verifyJWT, changePassword);
+router.patch("/edit/avatar", verifyJWT, uploadFile, changeAvatar);
 
-//updateroutes
-router.route('/edit/username').patch(verifyJWT, changeUsername)
-router.route('/edit/password').patch(verifyJWT, changePassword)
-router.route('/edit/avatar').patch(verifyJWT, uploadFile, changeAvatar)
+// Auth
+router.post("/login", loginUser);
+router.post("/logout", verifyJWT, logoutUser);
+router.post("/newToken", refreshAccessToken);
 
-// login route
-router.route('/login').post(loginUser)
+// Read
+router.get("/read", verifyJWT, readUser);
 
-// logout route
-router.route('/logout').post(verifyJWT, logoutUser)
-
-// refresh token route
-router.route('/newToken').post(refreshAccessToken)
-
-// read routes
-router.route('/read').get(verifyJWT, readUser)
+// Delete
+router.delete("/delete/avatar", verifyJWT, deleteAvatar);
+router.delete("/delete", verifyJWT, deleteUser);
 
 export default router;

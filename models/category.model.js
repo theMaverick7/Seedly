@@ -1,11 +1,17 @@
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose"
 
-const reference = mongoose.Schema.Types.ObjectId;
+const reference = mongoose.Schema.Types.ObjectId
 
 const categorySchema = new mongoose.Schema({
     name: {
         type: String,
-        enum: ['fruits','vegetables','dairy','legumes','meat'],
+        enum: [
+            'fruits',
+            'vegetables',
+            'dairy',
+            'legumes',
+            'meat'
+        ],
         required: true
     },
     product: {
@@ -14,4 +20,4 @@ const categorySchema = new mongoose.Schema({
     } 
 }, { timestamps: true });
 
-export const Category = mongoose.model('Category', categorySchema);
+export const Category = mongoose.model('Category', categorySchema)
