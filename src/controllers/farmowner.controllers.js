@@ -25,24 +25,26 @@ const createFarmowner = asyncHandler(async (_, res) => {
 
     if (existingFarmowner) throw new apiError(500, 'farmowner already exist');
 
-    let cloudUpload = null;
-    if (avatar) cloudUpload = await uploadOnCloudinary(avatar.path);
-    if (!cloudUpload) throw new apiError(500, 'cloud upload failed');
+    let userAvatar, cloudUpload = null;
+    if (avatar){
+        cloudUpload = await uploadOnCloudinary(avatar.path);
+        userAvatar = {
+            url: cloudUpload?.url,
+            public_id: cloudUpload?.public_id
+        }
+    }
 
     const newFarmowner = await FarmOwner.create({
         ...userData,
-        avatar: {
-            url: cloudUpload?.url || '',
-            public_id: cloudUpload?.public_id || '',
-        },
+        avatar: userAvatar
     });
 
     const theFarmowner = await FarmOwner.findById(newFarmowner._id).select('-refreshToken -password');
-    if (!theFarmowner) throw new apiError(500, 'farmowner registration failed');
+    if (!theFarmowner) throw new apiError(500, 'farmowner creation failed');
 
-    console.log('Farmowner registered successfully');
+    console.log('Farmowner created successfully', theFarmowner);
     return res.status(200).json(
-        new apiResponse(200, theFarmowner, 'farmowner registered successfully')
+        new apiResponse(200, theFarmowner, 'farmowner created successfully')
     );
 });
 
@@ -229,13 +231,12 @@ const deleteFarmowner = asyncHandler(async (req, res) => {
             const farmids = deletedFarmowner.farms;
             deletedFarms = await Farm.deleteMany({ createdBy: deletedFarmowner._id }, { session });
             deletedProducts = await Product.deleteMany({ createdBy: { $in: farmids } }, { session });
+
+            console.log('farmowner deleted successfully');
+            console.log(`farms deleted: ${deletedFarms.deletedCount}`);
+            console.log(`products deleted: ${deletedProducts.deletedCount}`);
         });
-
         await session.endSession();
-
-        console.log('farmowner deleted successfully');
-        console.log(`farms deleted: ${deletedFarms.deletedCount}`);
-        console.log(`products deleted: ${deletedProducts.deletedCount}`);
 
         return res.status(200).json(new apiResponse(200, {}, 'farmowner deleted successfully'));
     } catch (error) {

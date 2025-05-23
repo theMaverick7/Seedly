@@ -1,5 +1,5 @@
 import Joi from 'joi'
-import { fileSchema } from "../sharedSchemas.js"
+import { fileSchema } from './sharedSchemas.js';
 
 export const farmCreateSchema = Joi.object({
     name: Joi.string()
@@ -19,9 +19,9 @@ export const farmCreateSchema = Joi.object({
 })
 
 export const farmEditSchema = Joi.object({
-    name: farmJoiSchema.extract('name').required(),
-    description: farmJoiSchema.extract('description').required(),
-    location: farmJoiSchema.extract('location').required(),
+    name: farmCreateSchema.extract('name').required(),
+    description: farmCreateSchema.extract('description').required(),
+    location: farmCreateSchema.extract('location').required(),
     pictures: [fileSchema],
     videos: [fileSchema],
     removeAssets: {

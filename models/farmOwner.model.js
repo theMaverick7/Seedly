@@ -1,7 +1,7 @@
 import mongoose from "mongoose"
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
-import { cloudAsset } from "./sharedSchemas.js"
+import { cloudAsset } from "./joiSchemas/sharedSchemas.js"
 
 const reference = mongoose.Schema.Types.ObjectId
 
@@ -22,7 +22,10 @@ const fOwnerSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    avatar: cloudAsset,
+    avatar: {
+        type: cloudAsset,
+        default: null
+    },
     refreshToken: {
         type: String
     },
@@ -32,7 +35,7 @@ const fOwnerSchema = new mongoose.Schema({
             ref: "Farm"
         }
     ]
-},{timestamps: true})
+},{timestamps: true, minimize: false})
 
 fOwnerSchema.pre('save', async function(next){
 

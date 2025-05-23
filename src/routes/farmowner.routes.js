@@ -34,18 +34,18 @@ import {
     updatePasswordSchema,
     updateEmailSchema,
     updateFullnameSchema,
-} from "../../models/joiSchemas/farmowner.joiSchema.js";
+} from "../../models/joiSchemas/sharedSchemas.js";
 import {
     fileSchema,
     loginSchema,
     createJoiSchema,
-} from "../../models/sharedSchemas.js";
+} from "../../models/joiSchemas/sharedSchemas.js";
 import {
-    farmJoiSchema,
+    farmCreateSchema,
     farmEditSchema,
 } from "../../models/joiSchemas/farm.joiSchema.js";
 import {
-    productJoiSchema,
+    productCreateSchema,
     productEditSchema,
 } from "../../models/joiSchemas/product.joiSchema.js";
 
@@ -64,7 +64,7 @@ const productFiles = upload.fields([
 ]);
 
 // Register & Login
-router.post("/register", farmownerFile, validator(createJoiSchema), createFarmowner);
+router.post("/create", farmownerFile, validator(createJoiSchema), createFarmowner);
 router.post("/login", validator(loginSchema), loginFarmowner);
 
 // Token & Logout
@@ -105,10 +105,10 @@ router.delete("/farms/:farmid/products/:productid/delete", verifyJWT, deleteProd
 
 // Farm Create
 router.post(
-    "/:id/farms/create",
+    "/farms/create",
     verifyJWT,
     farmFiles,
-    validator(farmJoiSchema),
+    validator(farmCreateSchema),
     createFarm
 );
 
@@ -117,7 +117,7 @@ router.post(
     "/farms/:farmid/products/create",
     verifyJWT,
     productFiles,
-    validator(productJoiSchema),
+    validator(productCreateSchema),
     createProduct
 );
 

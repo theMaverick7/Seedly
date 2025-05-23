@@ -9,11 +9,10 @@ const PORT = process.env.PORT || 7070;
 
 async function startServer() {
     try {
-        const res = await dbConnection();
-        console.log(res);
+        await dbConnection();
 
         app.listen(PORT, () => {
-            console.log(`⚙️  Server Listening on port: ${PORT}`);
+            console.log(`⚙️ Server Listening on port: ${PORT}`);
         });
 
         app.on('error', (error) => {

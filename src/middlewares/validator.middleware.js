@@ -1,7 +1,7 @@
 import { apiError } from '../utils/apiError.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { unlink } from 'fs/promises';
-import { fileSchema } from '../../models/sharedSchemas.js';
+import { fileSchema } from '../../models/joiSchemas/sharedSchemas.js';
 
 // Validate a single file against the schema
 const validateFile = async (file) => {
@@ -32,21 +32,10 @@ const validateFiles = async (files) => {
 // Main validator middleware
 export const validator = (schema) =>
     asyncHandler(async (req, res, next) => {
-        // Parse removeAssets if present
-        let removeAssets;
-        try {
-            removeAssets = req.body.removeAssets ? JSON.parse(req.body.removeAssets) : undefined;
-        } catch (e) {
-            throw new apiError(400, 'Invalid JSON in removeAssets');
-        }
 
         // Validate text fields
         if (schema && Object.keys(req.body).length !== 0) {
-            const { value: textValues, error: textError } = schema.validate({
-                ...req.body,
-                removeAssets,
-            });
-
+            const { value: textValues, error: textError } = schema.validate(req.body);
             if (textError) throw new apiError(400, textError.message);
 
             res.locals.validatedTextValues = textValues;

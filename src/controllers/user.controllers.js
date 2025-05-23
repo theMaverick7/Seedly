@@ -36,10 +36,10 @@ const createUser = asyncHandler(async (_, res) => {
     });
 
     const theUser = await User.findById(newUser._id).select("-refreshToken -password");
-    if (!theUser) throw new apiError(500, "user registration failed");
+    if (!theUser) throw new apiError(500, "user created failed");
 
     return res.status(200).json(
-        new apiResponse(200, theUser, "user registered successfully")
+        new apiResponse(200, theUser, "user created successfully")
     );
 });
 
@@ -47,26 +47,26 @@ const loginUser = asyncHandler(async (_, res) => {
     const userData = res.locals.validatedTextValues;
 
     const foundUser = await User.findOne({
-        $or: [{ username: userData.username }, { email: userData.email }],
+        $or: [{ username: userData.identifier }, { email: userData.identifier }],
     });
-    if (!foundUser) throw new apiError(500, "user not found");
+    if (!foundUser) throw new apiError(400, 'User not found');
 
     const isPswdCorrect = await foundUser.validatePassword(userData.password);
-    if (!isPswdCorrect) throw new apiError(400, "password incorrect");
+    if (!isPswdCorrect) throw new apiError(400, 'Incorrect password');
 
     const { accessToken, refreshToken } = await tokenGen(foundUser);
 
-    const loggedUser = await User.findById(foundUser._id).select("-refreshToken -password");
+    const loggedUser = await User.findById(foundUser._id).select('-refreshToken -password');
 
     return res
         .status(200)
-        .cookie("accessToken", accessToken, cookieOptions)
-        .cookie("refreshToken", refreshToken, cookieOptions)
+        .cookie('accessToken', accessToken, cookieOptions)
+        .cookie('refreshToken', refreshToken, cookieOptions)
         .json(
             new apiResponse(
                 200,
                 { user: loggedUser, accessToken, refreshToken },
-                "User logged in successfully"
+                'User logged in successfully'
             )
         );
 });
@@ -217,6 +217,8 @@ const deleteUser = asyncHandler(async (req, res) => {
             if (deletedUser?.avatar?.public_id) {
                 await deleteFile(deletedUser.avatar.public_id);
             }
+
+            console.log("User deleted successfully");
         });
         await session.endSession();
 

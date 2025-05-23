@@ -5,6 +5,7 @@ import { Farm } from "../../models/farm.model.js";
 import { FarmOwner } from "../../models/farmOwner.model.js";
 import { Product } from "../../models/product.model.js";
 import { uploadAndSaveCloudAssets } from "../utils/uploadAndSaveCloudAssets.js";
+import mongoose from "mongoose";
 
 // Create a new farm
 const createFarm = asyncHandler(async (req, res) => {
@@ -14,7 +15,7 @@ const createFarm = asyncHandler(async (req, res) => {
         validatedVideos,
     } = res.locals;
 
-    const foundFarmOwner = await FarmOwner.findById(req.params.id);
+    const foundFarmOwner = await FarmOwner.findById(req.farmowner._id);
     if (!foundFarmOwner) {
         throw new apiError(404, "Farm owner not found");
     }
@@ -38,6 +39,8 @@ const createFarm = asyncHandler(async (req, res) => {
 
     foundFarmOwner.farms.push(newFarm._id);
     await foundFarmOwner.save();
+
+    console.log('Farm created successfully', newFarm);
 
     return res.status(201).json(
         new apiResponse(201, newFarm, "Farm created successfully")
@@ -123,25 +126,34 @@ const editFarm = asyncHandler(async (req, res) => {
 // Delete a farm
 const deleteFarm = asyncHandler(async (req, res) => {
     const { farmid } = req.params;
+    const session = await mongoose.startSession();
 
-    await Farm.findByIdAndDelete(farmid);
+    try {
 
-    const deletedProducts = await Product.deleteMany({
-        createdBy: farmid,
-    });
+        await session.withTransaction(async() => {
+            await Farm.findByIdAndDelete(farmid);
+            const deletedProducts = await Product.deleteMany({
+                createdBy: farmid,
+            }, { session });
 
-    await FarmOwner.findByIdAndUpdate(req.farmowner._id, {
-        $pull: {
-            farms: farmid,
-        },
-    });
+            await FarmOwner.findByIdAndUpdate(req.farmowner._id, {
+                $pull: {
+                    farms: farmid,
+                },
+            }, { session });
 
-    console.log("Farm deleted successfully");
-    console.log(`Products deleted: ${deletedProducts.deletedCount}`);
+            console.log("Farm deleted successfully");
+            console.log(`Products deleted: ${deletedProducts.deletedCount}`);
+        });
+        await session.endSession();
 
-    res
-        .status(200)
+        res.status(200)
         .json(new apiResponse(200, {}, "Farm deleted successfully"));
+
+    } catch (error) {
+        await session.endSession();
+        throw new apiError(500, `error deleting farm: ${error.message}`);
+    }
 });
 
 export {

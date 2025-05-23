@@ -6,6 +6,7 @@ import { Farm } from "../../models/farm.model.js";
 import { FarmOwner } from "../../models/farmOwner.model.js";
 import { uploadAndSaveCloudAssets } from "../utils/uploadAndSaveCloudAssets.js";
 import { deleteFiles } from "../utils/cloudinary.js";
+import mongoose from "mongoose";
 
 // Create Product
 const createProduct = asyncHandler(async (req, res) => {
@@ -14,7 +15,7 @@ const createProduct = asyncHandler(async (req, res) => {
     validatedPictures,
     validatedVideos,
   } = res.locals;
-  const { farmownerid, farmid } = req.params;
+  const { farmid } = req.params;
 
   const theFarmowner = await FarmOwner.findById(req.farmowner._id);
   if (!theFarmowner) throw new apiError(500, "Farm owner not found");
@@ -92,11 +93,17 @@ const editProduct = asyncHandler(async (req, res) => {
     await deleteFiles(imagesIds);
   }
 
+  if(productData){
+    await Product.findByIdAndUpdate(
+      foundProduct._id,
+      {...productData}
+    )
+  }
+
   if (videosIds.length) {
     await Product.findByIdAndUpdate(
       foundProduct._id,
-      { $pull: { videos: { public_id: { $in: videosIds } } } },
-      { new: true }
+      { $pull: { videos: { public_id: { $in: videosIds } } } }
     );
     await deleteFiles(videosIds, "video");
   }
@@ -118,24 +125,34 @@ const editProduct = asyncHandler(async (req, res) => {
 // Delete Product
 const deleteProduct = asyncHandler(async (req, res) => {
   const { farmid, productid } = req.params;
+  const session = await mongoose.startSession();
 
-  const deletedProd = await Product.findByIdAndDelete(productid);
-  if (!deletedProd) throw new apiError(404, "Product not found");
-
-  const updatedFarm = await Farm.findByIdAndUpdate(
-    farmid,
-    { $pull: { products: productid } },
-    { new: true }
-  );
-
-  await deleteFiles(deletedProd.pictures || []);
-  await deleteFiles(deletedProd.videos || []);
-
-  console.log("Product deleted successfully");
-
-  return res
+  try {
+    await session.withTransaction(async() => {
+      const deletedProd = await Product.findByIdAndDelete(productid, {session});
+      if (!deletedProd) throw new apiError(404, "Product not found");
+  
+      await Farm.findByIdAndUpdate(
+      farmid,
+      { $pull: { products: productid } },
+      { new: true , session}
+      );
+  
+      await deleteFiles(deletedProd.pictures || []);
+      await deleteFiles(deletedProd.videos || []);
+  
+      console.log("Product deleted successfully");
+    })
+    await session.endSession();
+  
+    return res
     .status(200)
-    .json(new apiResponse(200, updatedFarm, "Product deleted successfully"));
+    .json(new apiResponse(200, {}, "Product deleted successfully"));
+
+  } catch (error) {
+    await session.endSession();
+    throw new apiError(500, `error deleting product: ${error.message}`);
+  }
 });
 
 export {

@@ -1,7 +1,7 @@
 import mongoose from "mongoose"
 import Joi from 'joi'
 
-export const cloudAssetSchema = new mongoose.Schema({
+export const cloudAsset = new mongoose.Schema({
   _id: false,
   url: String,
   public_id: String

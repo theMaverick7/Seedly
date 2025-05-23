@@ -1,5 +1,5 @@
 import Joi from 'joi'
-import { fileSchema } from "../sharedSchemas.js"
+import { fileSchema } from "./sharedSchemas.js"
 
 export const productCreateSchema = Joi.object({
     name: Joi.string()

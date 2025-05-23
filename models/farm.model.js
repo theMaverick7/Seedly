@@ -1,5 +1,5 @@
 import mongoose from "mongoose"
-import { cloudAsset } from "./sharedSchemas.js"
+import { cloudAsset } from "./joiSchemas/sharedSchemas.js"
 
 const reference = mongoose.Schema.Types.ObjectId
 
